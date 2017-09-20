@@ -43,20 +43,20 @@ class HybridRanking{
     HybridRanking(){
         n_users = 0;
         n_items = 0;
-  	ndcg_k = 10;
-  	rank = 10;
-  	max_iterations = 100;
+      	ndcg_k = 10;
+      	rank = 10;
+      	max_iterations = 100;
         alpha = 1.;
-	beta = 0.;
-	learning_rate = 0.1;
-	relative_learning_rate = 1.;
+    	beta = 0.;
+    	learning_rate = 0.1;
+    	relative_learning_rate = 1.;
         lambda = 1.; 
-	eps = 1e-2;
- 	initialized = true;
-	show_seperate_loss = false;
-	show_each_iteration= true;
+    	eps = 1e-2;
+     	initialized = true;
+    	show_seperate_loss = false;
+    	show_each_iteration= true;
 
-	pairwise_method = 1;
+    	pairwise_method = 1;
     };
     
     void read_input();
@@ -128,8 +128,7 @@ double HybridRanking::predict(const vector<double> &user, const vector<double> &
 
 
 /**
-*
-*
+* Compute the total loss: sum_u ( pointwise loss + pairwise loss + listwise loss)
 **/
 
 double HybridRanking::compute_loss(const vector<vector<pair<int, double>>> &ratings_matrix, const vector<vector<pair<int, int>>> &pairs_matrix, const vector<vector<double>> &users_features1, const vector<vector<double>> &items_features1){
@@ -398,7 +397,7 @@ void HybridRanking::update(const vector<vector<pair<int, double>>> &ratings_matr
     	    double loss2 = compute_loss(ratings_matrix, ratings_matrix_comp, users_features_next, items_features_next); 
     	    
     	    while(loss2 > loss1){
-		cout<<"learning_rate too large ..."<<endl;
+		        cout<<"learning_rate too large ..."<<endl;
     	        learning_rate = learning_rate / 2.0;
         	for(unsigned uid=0; uid < ratings_matrix.size(); uid++){
                     compute_gradient_ui_point(uid, ratings_matrix, ui_prime);
@@ -411,7 +410,7 @@ void HybridRanking::update(const vector<vector<pair<int, double>>> &ratings_matr
                     for(int k=0; k < rank; k++)
                         items_features_next[iid][k] = items_features[iid][k]-learning_rate * vj_prime[k];
                 }
-		loss2 = compute_loss(ratings_matrix, ratings_matrix_comp, users_features_next, items_features_next);
+		        loss2 = compute_loss(ratings_matrix, ratings_matrix_comp, users_features_next, items_features_next);
     	    }
     	    
     	    copy_matrix(users_features, users_features_next);
@@ -440,13 +439,15 @@ void HybridRanking::update(const vector<vector<pair<int, double>>> &ratings_matr
             for(unsigned uid=0; uid < ratings_matrix.size(); uid++){
                 compute_gradient_ui_pair(uid, ratings_matrix_comp, ui_prime);
                 for(int k=0; k < rank; k++)
-                    users_features[uid][k] -= learning_rate * ui_prime[k];
+                    users_features[uid][k] -= relative_learning_rate * learning_rate * ui_prime[k];
             }
     	    if(show_each_iteration){
                // double loss_tmp = compute_loss(ratings_matrix, ratings_matrix_comp, users_features, items_features);
+                double train_pairloss = compute_pairloss(input.ratings_train,  users_features, items_features);
+                double test_pairloss = compute_pairloss(input.ratings_test,  users_features, items_features);
 		        double train_ndcg= compute_ndcg(input.ratings_train, users_features, items_features, ndcg_k);
 		        double test_ndcg= compute_ndcg(input.ratings_test, users_features, items_features, ndcg_k);
-                cout <<"done\t train_ndcg="<< train_ndcg << "\t test_ndcg="<< test_ndcg << "\nPair[1] Iterations ["<< it <<"] V... ";
+                cout <<"done\t train_zero_one="<< train_pairloss <<"\t test_zero_one="<< test_pairloss <<"\t  train_ndcg="<< train_ndcg << "\t test_ndcg="<< test_ndcg << "\nPair[1] Iterations ["<< it <<"] V... ";
     	    }           
             
 	    //update Vj
@@ -457,10 +458,12 @@ void HybridRanking::update(const vector<vector<pair<int, double>>> &ratings_matr
             }
     	    if(show_each_iteration){
     	    //	double loss_tmp_2 = compute_loss(ratings_matrix, ratings_matrix_comp, users_features, items_features);
+                double train_pairloss = compute_pairloss(input.ratings_train,  users_features, items_features);
+                double test_pairloss = compute_pairloss(input.ratings_test,  users_features, items_features);
 		        double train_ndcg= compute_ndcg(input.ratings_train, users_features, items_features, ndcg_k);
 		        double test_ndcg=  compute_ndcg(input.ratings_test, users_features, items_features, ndcg_k);
     	    //	cout <<"done\t loss=" << loss_tmp_2 << "\t train_ndcg=" << train_ndcg << "\t test_ndcg="<< test_ndcg << endl;
-                cout <<"done\t train_ndcg=" << train_ndcg << "\t test_ndcg="<< test_ndcg << endl;
+                cout <<"done\t train_zero_one="<< train_pairloss <<"\t test_zero_one="<< test_pairloss <<"\t train_ndcg=" << train_ndcg << "\t test_ndcg="<< test_ndcg << endl;
     	    }
 	                	
     	    it++;

@@ -46,14 +46,9 @@ void InputData::readInputTrain(std::string& filename, std::string& comp_filename
         int iid_comp1;
         int iid_comp2;
 
-    //	while(!f.eof() && !f_comp.eof()) {
-    //	    getline(f, user_str);
-    //	    getline(f_comp, user_str_comp); 
-    //        if(!user_str.empty())
         while(getline(f, user_str) && getline(f_comp, user_str_comp)){
-    	    	ratings_train.resize(ratings_train.size() + 1);
-    //	    if(!user_str_comp.empty())
-    	    	ratings_train_comp.resize(ratings_train_comp.size() + 1);
+    	    ratings_train.resize(ratings_train.size() + 1);
+    	    ratings_train_comp.resize(ratings_train_comp.size() + 1);
 
             //read data from lsvm training file;
     	    size_t pos1 = 0, pos2;
@@ -78,8 +73,8 @@ void InputData::readInputTrain(std::string& filename, std::string& comp_filename
         		ratings_train.back().push_back(make_pair(iid, sc));		                 
     	    }
 
-	    //read data from  		
-	    pos1 = 0;
+	        //read data from order ralation input file		
+	        pos1 = 0;
     	    while(1){
         		pos2 = user_str_comp.find(':', pos1);
         		if(pos2 == std::string::npos) break;
@@ -103,6 +98,7 @@ void InputData::readInputTrain(std::string& filename, std::string& comp_filename
     	  //  if(ratings_train[ratings_train.size()-1].size()==0) break;
     	}
     }
+
     f.close();
     f_comp.close();
     n_users = ratings_train.size();
@@ -111,7 +107,7 @@ void InputData::readInputTrain(std::string& filename, std::string& comp_filename
 }
 
 void InputData::readInputTest(std::string& filename){
- //   std::vector<std::vector<std::pair<int, double>>> ratings;
+ // std::vector<std::vector<std::pair<int, double>>> ratings;
     std::string user_str, attribute_str;
     std::stringstream attribute_sstr; 
 

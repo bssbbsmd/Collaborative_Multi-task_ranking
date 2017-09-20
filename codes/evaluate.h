@@ -78,8 +78,8 @@ double compute_ndcg(const std::vector<std::vector<std::pair<int, double>>> &test
     int n_users = test_ratings.size();
     int rank = users_features[0].size();
     if(n_users != (int) users_features.size()) {
-	std::cout << "Error, the number of test users does not match" << std::endl; 
-	std::exit(0);
+	   std::cout << "Error, the number of test users does not match" << std::endl; 
+	   std::exit(0);
     }
     // int n_items = items_features.size();
     // std::cout << "[test file] number of users: "<<n_users << " items: "<< n_items << std::endl;    
@@ -92,32 +92,92 @@ double compute_ndcg(const std::vector<std::vector<std::pair<int, double>>> &test
     std::vector<double> score;    
     
     for(int uid= 0; uid < n_users; uid++){
-//	double dcg = 0.;
- 
-	score.clear();
+    	score.clear();
 
-	//calculate the dcg for each user
-	for(unsigned int i=0; i < test_ratings[uid].size(); i++){
-            
-	    int iid = test_ratings[uid][i].first-1;
-	    if( iid < static_cast<int>(items_features.size())){
-		double prod = 0.;
-		for(int k=0; k < rank; k++){
-		    prod += users_features[uid][k] * items_features[iid][k];
-		}
-		score.push_back(prod);
-	    }else{
-		score.push_back(-1e10);
-	    }
-	}
-	//computer the ndcg value for each user
-       // std::cout << "Starting calculate ndcg for user: " << uid << ".........";
-	ndcg_sum += compute_user_ndcg(uid, score, test_ratings, dcg_max, ndcg_k);
-	//std::cout << "done" << std::endl;	
+    	//calculate the dcg for each user
+    	for(unsigned int i=0; i < test_ratings[uid].size(); i++){
+                
+    	    int iid = test_ratings[uid][i].first-1;
+    	    if( iid < static_cast<int>(items_features.size())){
+    		double prod = 0.;
+    		for(int k=0; k < rank; k++){
+    		    prod += users_features[uid][k] * items_features[iid][k];
+    		}
+    		score.push_back(prod);
+    	    }else{
+    		score.push_back(-1e10);
+    	    }
+    	}
+    	//computer the ndcg value for each user
+           // std::cout << "Starting calculate ndcg for user: " << uid << ".........";
+    	ndcg_sum += compute_user_ndcg(uid, score, test_ratings, dcg_max, ndcg_k);
+    	//std::cout << "done" << std::endl;	
     }
 
     return ndcg_sum / (double)n_users;	
 }
+
+
+/**
+compute the pairwise loss (i.e. zero-one loss)
+**/
+double compute_pairloss(const std::vector<std::vector< std::pair<int, double>>> &test_ratings, const std::vector<std::vector<double>> &users_features, const vector<vector<double>> &items_features){
+    int n_users = test_ratings.size();
+    int rank = users_features[0].size();
+    if(n_users != (int) users_features.size()) {
+       std::cout << "Error, the number of test users does not match" << std::endl; 
+       std::exit(0);
+    }
+
+    double sum_correct = 0.;
+    int neg_user = 0;
+
+    // we calculate the estimated scores one time for all the test user-item combinations
+    std::vector<double> est_score; 
+
+    for(int uid=0; uid < n_users; uid++){
+        int n_items_uid = test_ratings[uid].size();
+        unsigned long cor_this = 0., n_pairs = 0;
+
+        //calculate the estimate scores
+        est_score.clear();
+
+        for(int i=0; i < n_items_uid; i++){
+            int iid = test_ratings[uid][i].first-1; //since iid starts from 0, while input starts from 1
+            if( iid < static_cast<int>(items_features.size())){
+                double prod = 0.;
+                for(int k=0; k<rank; k++)
+                    prod += users_features[uid][k] * items_features[iid][k];
+                est_score.push_back(prod);
+            }else{
+                std::cout << "test data error, there are items not existing in the training set";
+                std::exit(0);
+            }
+        }
+
+        //calculate the concordant pairs and discordant pairs
+
+        for(int i=0; i < n_items_uid-1; i++)
+            for(int j=i+1; j < n_items_uid; j++){
+                int iscore = test_ratings[uid][i].second;
+                int jscore = test_ratings[uid][j].second;
+
+                if(((iscore > jscore) && (est_score[i] > est_score[j])) || ((jscore > iscore) && (est_score[j] > est_score[i])))  ++ cor_this; //
+                if(iscore != jscore) ++n_pairs;
+            }
+
+        if(n_pairs==0){
+            neg_user++;
+            continue;
+        }
+        sum_correct += (double) cor_this/ (double) n_pairs;
+    }
+
+    return sum_correct / (double) (n_users - neg_user);    
+}
+
+
+
 
 #endif
 

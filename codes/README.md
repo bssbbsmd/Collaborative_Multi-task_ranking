@@ -1,6 +1,6 @@
 
 
-### Input 
+### Input Data
 There are two input files. One looks like the following
 
 ```

@@ -126,6 +126,12 @@ double HybridRanking::predict(const vector<double> &user, const vector<double> &
     return score;
 }
 
+
+/**
+*
+*
+**/
+
 double HybridRanking::compute_loss(const vector<vector<pair<int, double>>> &ratings_matrix, const vector<vector<pair<int, int>>> &pairs_matrix, const vector<vector<double>> &users_features1, const vector<vector<double>> &items_features1){
     double loss = 0;
     double point_loss = 0, pair_loss=0, list_loss=0;
@@ -225,15 +231,15 @@ void HybridRanking::compute_gradient_ui_pair(int uid, const vector<vector<pair<i
     fill(ui_prime.begin(), ui_prime.end(), 0.0);	
 
     for(unsigned i=0; i < ratings_matrix_comp[uid].size(); i++){
-	int iid_higher = ratings_matrix_comp[uid][i].first - 1;
-	int iid_lower = ratings_matrix_comp[uid][i].second - 1;
+	    int iid_higher = ratings_matrix_comp[uid][i].first - 1;
+	    int iid_lower = ratings_matrix_comp[uid][i].second - 1;
         for(int k=0; k < rank; k++){
-	    ui_prime[k] -= (1./(1.+ exp(predict(uid, iid_higher)-predict(uid, iid_lower))))*(items_features[iid_higher][k] - items_features[iid_lower][k]);
-	}
+	        ui_prime[k] -= (1./(1.+ exp(predict(uid, iid_higher)-predict(uid, iid_lower))))*(items_features[iid_higher][k] - items_features[iid_lower][k]);
+	    }
     }
 
     for(int k=0; k < rank; k++){ 
-	ui_prime[k] += lambda * users_features[uid][k];
+	    ui_prime[k] += lambda * users_features[uid][k];
     }
 }
     
@@ -437,10 +443,10 @@ void HybridRanking::update(const vector<vector<pair<int, double>>> &ratings_matr
                     users_features[uid][k] -= learning_rate * ui_prime[k];
             }
     	    if(show_each_iteration){
-                double loss_tmp = compute_loss(ratings_matrix, ratings_matrix_comp, users_features, items_features);
+               // double loss_tmp = compute_loss(ratings_matrix, ratings_matrix_comp, users_features, items_features);
 		        double train_ndcg= compute_ndcg(input.ratings_train, users_features, items_features, ndcg_k);
 		        double test_ndcg= compute_ndcg(input.ratings_test, users_features, items_features, ndcg_k);
-                cout <<"done\t loss="<<loss_tmp<<"\t train_ndcg="<< train_ndcg << "\t test_ndcg="<< test_ndcg << "\nPair[1] Iterations ["<< it <<"] V... ";
+                cout <<"done\t train_ndcg="<< train_ndcg << "\t test_ndcg="<< test_ndcg << "\nPair[1] Iterations ["<< it <<"] V... ";
     	    }           
             
 	    //update Vj
@@ -450,30 +456,30 @@ void HybridRanking::update(const vector<vector<pair<int, double>>> &ratings_matr
                     items_features[iid][k] -= learning_rate * vj_prime[k];
             }
     	    if(show_each_iteration){
-    	    	double loss_tmp_2 = compute_loss(ratings_matrix, ratings_matrix_comp, users_features, items_features);
+    	    //	double loss_tmp_2 = compute_loss(ratings_matrix, ratings_matrix_comp, users_features, items_features);
 		        double train_ndcg= compute_ndcg(input.ratings_train, users_features, items_features, ndcg_k);
 		        double test_ndcg=  compute_ndcg(input.ratings_test, users_features, items_features, ndcg_k);
-    	    	cout <<"done\t loss="<<loss_tmp_2 <<"\t train_ndcg="<< train_ndcg <<"\t test_ndcg="<< test_ndcg << endl;
+    	    //	cout <<"done\t loss=" << loss_tmp_2 << "\t train_ndcg=" << train_ndcg << "\t test_ndcg="<< test_ndcg << endl;
+                cout <<"done\t train_ndcg=" << train_ndcg << "\t test_ndcg="<< test_ndcg << endl;
     	    }
 	                	
     	    it++;
     	    double loss2 = compute_loss(ratings_matrix, ratings_matrix_comp, users_features, items_features);
     	    
-    	    while(loss2>loss1){
-    		cout<<"learning_rate too large ..."<<endl;
-        	        learning_rate = learning_rate / 2.0;
+    	    while(loss2 > loss1){
+    		    cout << "learning_rate too large ..."<<endl;
+        	    learning_rate = learning_rate / 2.0;
+            }
 
-	    }
+            loss1 = loss2;
 
-//	    ndcg = compute_ndcg(input.ratings_test, users_features, items_features, ndcg_k);
- //   	    std::cout << "Iterations ["<< it <<"]\t update pairwise:\tloss: "<< loss1 << "\t NDCG: "<<ndcg << endl;
         }
        
-	//********************************************************************************************************************
+	    //********************************************************************************************************************
         //if alpha <= z < alpha_beta, update pairwise loss with coordinate descent plus update U using regression
         //********************************************************************************************************************
         if(alpha <= z && z < alpha+beta && pairwise_method == 2){
-	    cout << "Pair[2]";
+	        cout << "Pair[2]";
     	    if(show_each_iteration){ 
     	    	cerr << " Iterations ["<< it <<"] U....";
     	    }
@@ -492,12 +498,12 @@ void HybridRanking::update(const vector<vector<pair<int, double>>> &ratings_matr
 
     	    if(show_each_iteration){
                 double loss_tmp = compute_loss(ratings_matrix, ratings_matrix_comp, users_features, items_features);
-		double train_ndcg= compute_ndcg(input.ratings_train, users_features, items_features, ndcg_k);
-		double test_ndcg= compute_ndcg(input.ratings_test, users_features, items_features, ndcg_k);
+		        double train_ndcg= compute_ndcg(input.ratings_train, users_features, items_features, ndcg_k);
+		        double test_ndcg= compute_ndcg(input.ratings_test, users_features, items_features, ndcg_k);
                 cout <<"done \t loss="<<loss_tmp<<"\t train_ndcg="<< train_ndcg << "\t test_ndcg="<< test_ndcg << "\nPair[2] Iterations ["<< it <<"] V... ";
     	    }           
             
-	    //update Vj
+	        //update Vj
             for(unsigned iid=0; iid < ratings_matrix_t.size(); iid++){
                 compute_gradient_vj_pair(iid, ratings_matrix, ratings_matrix_t, vj_prime);
                 for(int k=0; k < rank; k++)
@@ -505,70 +511,46 @@ void HybridRanking::update(const vector<vector<pair<int, double>>> &ratings_matr
             }
     	    if(show_each_iteration){
     	    	double loss_tmp_2 = compute_loss(ratings_matrix, ratings_matrix_comp, users_features, items_features);
-		double train_ndcg= compute_ndcg(input.ratings_train, users_features, items_features, ndcg_k);
-		double test_ndcg= compute_ndcg(input.ratings_test, users_features, items_features, ndcg_k);
+		        double train_ndcg= compute_ndcg(input.ratings_train, users_features, items_features, ndcg_k);
+		        double test_ndcg= compute_ndcg(input.ratings_test, users_features, items_features, ndcg_k);
     	    	cout <<"done \t loss="<<loss_tmp_2 <<"\t train_ndcg="<< train_ndcg <<"\t test_ndcg="<< test_ndcg << endl;
     	    }
 	                	
-	    it++;
-	    double loss2 = compute_loss(ratings_matrix, ratings_matrix_comp, users_features, items_features);
+	        it++;
+	        double loss2 = compute_loss(ratings_matrix, ratings_matrix_comp, users_features, items_features);
 	    
-	    if(loss2>loss1){
-		cout<<"learning_rate too large ..."<<endl;
+	        if(loss2>loss1){
+		        cout<<"learning_rate too large ..."<<endl;
     	        learning_rate = learning_rate / 2.0;
-
-	    }
-
+            }
         }
         
 	//********************************************************************************************************************
         //if alpha <= z < alpha_beta, update pairwise loss with coordinate descent. Only update V
         //********************************************************************************************************************
-        if(alpha <= z && z < alpha+beta && pairwise_method == 3){    	    
-            //update Ui using Regression Loss:
-            //for(unsigned uid=0; uid < ratings_matrix.size(); uid++){
-            //    compute_gradient_ui_pair(uid, ratings_matrix_comp, ui_prime);
-            //    for(int k=0; k < rank; k++)
-            //        users_features[uid][k] -= learning_rate * ui_prime[k];
-            //}
-/*
-            for(unsigned uid=0; uid < ratings_matrix.size(); uid++){
-                compute_gradient_ui_point(uid, ratings_matrix, ui_prime);
-                for(int k=0; k < rank; k++)
-                    users_features[uid][k] =  users_features[uid][k] - relative_learning_rate*learning_rate * ui_prime[k];
-            }
-
-    	    if(show_each_iteration){
-		cout << "Pair[3] Iterations ["<< it <<"] U....";
-                double loss_tmp = compute_loss(ratings_matrix, ratings_matrix_comp, users_features, items_features);
-		double train_ndcg= compute_ndcg(input.ratings_train, users_features, items_features, ndcg_k);
-		double test_ndcg= compute_ndcg(input.ratings_test, users_features, items_features, ndcg_k);
-                cout <<"done \t loss="<<loss_tmp<<"\t train_ndcg="<< train_ndcg << "\t test_ndcg="<< test_ndcg<< endl;
-    	    }           
-*/            
-	    //update Vj
+        if(alpha <= z && z < alpha+beta && pairwise_method == 3){    	       
+            //update Vj
             for(unsigned iid=0; iid < ratings_matrix_t.size(); iid++){
                 compute_gradient_vj_pair(iid, ratings_matrix, ratings_matrix_t, vj_prime);
                 for(int k=0; k < rank; k++)
                     items_features[iid][k] -= learning_rate * vj_prime[k];
             }
     	    if(show_each_iteration){
- 		cout << "Pair[3] Iterations ["<< it <<"] V... ";
-    	    	double loss_tmp_2 = compute_loss(ratings_matrix, ratings_matrix_comp, users_features, items_features);
-		double train_ndcg= compute_ndcg(input.ratings_train, users_features, items_features, ndcg_k);
-		double test_ndcg= compute_ndcg(input.ratings_test, users_features, items_features, ndcg_k);
-    	    	cout <<"done \t loss="<<loss_tmp_2 <<"\t train_ndcg="<< train_ndcg <<"\t test_ndcg="<< test_ndcg << endl;
+ 		        cout << "Pair[3] Iterations ["<< it <<"] V... ";
+    	    //	double loss_tmp_2 = compute_loss(ratings_matrix, ratings_matrix_comp, users_features, items_features);
+		        double train_ndcg= compute_ndcg(input.ratings_train, users_features, items_features, ndcg_k);
+		        double test_ndcg= compute_ndcg(input.ratings_test, users_features, items_features, ndcg_k);
+    	    	cout <<"done \t train_ndcg="<< train_ndcg <<"\t test_ndcg="<< test_ndcg << endl;
     	    }
 	                	
-	    it++;
-	    double loss2 = compute_loss(ratings_matrix, ratings_matrix_comp, users_features, items_features);
-	    
-	    if(loss2>loss1){
-		cout<<"learning_rate too large ..."<<endl;
+	       it++;
+	       double loss2 = compute_loss(ratings_matrix, ratings_matrix_comp, users_features, items_features);
+	       
+	       if(loss2 > loss1){
+		        cout<<"learning_rate too large ..."<<endl;
     	        learning_rate = learning_rate / 2.0;
-
-	    }
-
+           }
+           loss1 = loss2;
         }
 
 

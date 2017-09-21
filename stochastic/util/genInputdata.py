@@ -21,11 +21,11 @@ def pair_comp_item(x, y):
 
 
 def write_comps_ratings(f, user_id, ratings_list):
-  for (rating1, rating2) in itertools.combinations(ratings_list, 2):
-    if rating1[1] > rating2[1]:      
-      print("%d %d %.1f %d %.1f" %(user_id, rating1[0], rating1[1], rating2[0], rating2[1]), file=f)
-    if rating1[1] < rating2[1]:
-      print("%d %d %.1f %d %.1f" %(user_id, rating2[0], rating2[1], rating1[0], rating1[1]), file=f)
+	for (rating1, rating2) in itertools.combinations(ratings_list, 2):
+	if rating1[1] > rating2[1]:      
+    	print("%d %d %.1f %d %.1f" %(user_id, rating1[0], rating1[1], rating2[0], rating2[1]), file=f)
+	if rating1[1] < rating2[1]:
+		print("%d %d %.1f %d %.1f" %(user_id, rating2[0], rating2[1], rating1[0], rating1[1]), file=f)
 
 def write_comps_user(f, user_id, user_rating_list):
 	line = str(user_id)+" "
@@ -65,19 +65,19 @@ def num2comp(filename, output, n_train_ratio, n_test_least):
 	train_triples_list = []
 	test_triples_list = []
 	f = open(filename, 'r')
-	
+
 	##########################################################
 	##### obtain train and test triples by the ratio value 
-	
+
 	for line in f:
-    	(user_id, item_id, rating) = line.strip().split()
-   		rdm_num = random.random()
-    	if rdm_num <= n_train_ratio:
+		(user_id, item_id, rating) = line.strip().split()
+		rdm_num = random.random()
+		if rdm_num <= n_train_ratio:
 			train_triples_list.append((int(user_id), int(item_id), float(rating)))
 		else:
 			test_triples_list.append((int(user_id), int(item_id), float(rating)))
-    	n_users = max(n_users, int(user_id))
-    	n_items = max(n_items, int(item_id))
+		n_users = max(n_users, int(user_id))
+		n_items = max(n_items, int(item_id))
 	f.close()
 
 	print("Dataset for {0} users, {1} items loaded.".format(n_users, n_items)) 

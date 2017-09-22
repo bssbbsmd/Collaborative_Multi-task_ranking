@@ -20,12 +20,11 @@ def pair_comp_item(x, y):
 		return x[1] - y[1]
 
 
-def write_comps_ratings(f, user_id, ratings_list):
-	for (rating1, rating2) in itertools.combinations(ratings_list, 2):
-	if rating1[1] > rating2[1]:      
-    	print("%d %d %.1f %d %.1f" %(user_id, rating1[0], rating1[1], rating2[0], rating2[1]), file=f)
-	if rating1[1] < rating2[1]:
-		print("%d %d %.1f %d %.1f" %(user_id, rating2[0], rating2[1], rating1[0], rating1[1]), file=f)
+def write_train_ratings(f, max_uid, max_iid, rating_list):
+	line = str(max_uid)+ " "+ str(max_iid)
+	print(line, file=f)
+	for rating in rating_list:
+		print(str(rating[0])+" "+str(rating[1])+" "+str(rating[2]), file=f)
 
 def write_comps_user(f, user_id, user_rating_list):
 	line = str(user_id)+" "
@@ -80,20 +79,25 @@ def num2comp(filename, output, n_train_ratio, n_test_least):
 		n_items = max(n_items, int(item_id))
 	f.close()
 
-	print("Dataset for {0} users, {1} items loaded.".format(n_users, n_items)) 
-  
-  	########################################################################
-  
-  
-  	#######################################################################
-  	## obtain the training pairs for each user
-  
-  	# order the data by user id and obtain the ordered pairs for each user 
+	print("Dataset for {0} users, {1} items loaded.".format(n_users, n_items))
+	
+
+	########################################################################
+	### wrting training rating file, it is used for update pointwise
+
+	g0 = open(output + '_train_rating_'+str(n_train_ratio)+'.rating', 'w')
+	write_train_ratings(g0, n_users, n_items, train_triples_list)
+	g0.close()
+
+	#######################################################################
+	## obtain the training pairs for each user
+
+	# order the data by user id and obtain the ordered pairs for each user 
 	train_triples_list.sort(cmp = pair_comp_user)
-	print("Dataset sorted by user_ids.") 
+	print("Training dataset sorted by user_ids.") 
  
-	g1 = open(output + '_train_user_'+str(n_train_ratio*100)+'.lsvm', 'w')
-	g2 = open(output + '_train_user_pairs_'+str(n_train_ratio*100)+'.pair', 'w') 
+	g_train_user_1 = open(output + '_train_user_'+str(n_train_ratio)+'.lsvm', 'w')
+	g_train_user_2 = open(output + '_train_user_pairs_'+str(n_train_ratio)+'.pair', 'w') 
 
 	prev_uid = train_triples_list[0][0]
 	curr_uid = train_triples_list[0][0]
@@ -105,8 +109,8 @@ def num2comp(filename, output, n_train_ratio, n_test_least):
   		if curr_uid != prev_uid:
   			if not rating_list:  # check if list is empty
   				continue
-  			write_lsvm_user(g1, prev_uid, rating_list)
-  			write_comps_ratings(g2, prev_uid, rating_list)
+  			write_lsvm_user(g_train_user_1, prev_uid, rating_list)
+  			write_comps_user(g_train_user_2, prev_uid, rating_list)
   			rating_list = []
   			rating_list.append((triple[1], triple[2]))
   			prev_uid = curr_uid
@@ -114,33 +118,116 @@ def num2comp(filename, output, n_train_ratio, n_test_least):
   			rating_list.append((triple[1], triple[2]))
 
   	#write the last triple		
-	write_lsvm_user(g1, prev_uid, rating_list)
-	write_comps_ratings(g2, prev_uid, rating_list)
+	write_lsvm_user(g_train_user_1, prev_uid, rating_list)
+	write_comps_user(g_train_user_2, prev_uid, rating_list)
+	
+	g_train_user_1.close()
+	g_train_user_2.close()
+	#######################################################################
+
+	#######################################################################
+	## obtain the test pairs for each user: for test, the selected users
+	## should have at least 10 ratings (thus, we can evaluate using metrics
+	## like NDCG@10 )
+	test_triples_list.sort(cmp = pair_comp_user)
+	print("Traing dataset sorted by user_ids")
+
+	g_test_user_1 = open(output+'_test_user_'+str(n_train_ratio)+'.lsvm','w')
+
+	prev_uid = test_triples_list[0][0]
+	curr_uid = test_triples_list[0][0]
+
+	rating_list = []
+	for triple in test_triples_list:
+		curr_uid = triple[0]
+		if curr_uid != prev_uid:
+			if not rating_list:
+				continue
+			if len(rating_list) >= n_test_least:			
+				write_lsvm_user(g_test_user_1, prev_uid, rating_list)
+			rating_list = []
+			rating_list.append((triple[1], triple[2]))
+			prev_uid = curr_uid
+		else:
+			rating_list.append((triple[1], triple[2]))
+
+	# write the list user
+	if len(rating_list) >= n_test_least:
+		write_lsvm_user(g_test_user_1,prev_uid,rating_list)
+
+	g_test_user_1.close()
+	#######################################################################
+
+	#######################################################################
+	## obtain the train pairs for each item:
+	train_triples_list.sort(cmp = pair_comp_item)
+	print("Dataset sorted by item_ids.") 
+ 
+	g_train_item_1 = open(output + '_train_item_'+str(n_train_ratio)+'.lsvm', 'w')
+	g_train_item_2 = open(output + '_train_item_pairs_'+str(n_train_ratio)+'.pair', 'w') 
+
+	prev_iid = train_triples_list[0][1]
+	curr_iid = train_triples_list[0][1]
+
+	rating_list = []
+
+	for triple in train_triples_list:
+  		curr_iid = triple[1]
+  		if curr_iid != prev_iid:
+  			if not rating_list:  # check if list is empty
+  				continue
+  			write_lsvm_item(g_train_item_1, prev_iid, rating_list)
+  			write_comps_item(g_train_item_2, prev_iid, rating_list)
+  			rating_list = []
+  			rating_list.append((triple[0], triple[2]))
+  			prev_iid = curr_iid
+  		else:
+  			rating_list.append((triple[0], triple[2]))
+
+  	#write the last triple		
+	write_lsvm_item(g_train_item_1, prev_iid, rating_list)
+	write_comps_item(g_train_item_2, prev_iid, rating_list)
+	
+	g_train_item_1.close()
+	g_train_item_2.close()
+
+	#######################################################################
+
+	#######################################################################
+	## obtain the test pairs for each item: for test, the selected items
+	## should have at least 10 ratings (thus, we can evaluate using metrics
+	## like NDCG@10 )
+	test_triples_list.sort(cmp = pair_comp_item)
+	print("Traing dataset sorted by user_ids")
+
+	g_test_item_1 = open(output+'_test_item_'+str(n_train_ratio)+'.lsvm','w')
+
+	prev_iid = test_triples_list[0][1]
+	curr_iid = test_triples_list[0][1]
+
+	rating_list = []
+	for triple in test_triples_list:
+		curr_iid = triple[1]
+		if curr_iid != prev_iid:
+			if not rating_list:
+				continue
+			if len(rating_list) >= n_test_least:			
+				write_lsvm_item(g_test_item_1, prev_iid, rating_list)
+			rating_list = []
+			rating_list.append((triple[0], triple[2]))
+			prev_iid = curr_iid
+		else:
+			rating_list.append((triple[0], triple[2]))
+
+	# write the list user
+	if len(rating_list) >= n_test_least:
+		write_lsvm_item(g_test_item_1,prev_iid,rating_list)
+
+	g_test_item_1.close()
+	#######################################################################
 
 
 
-'''
-
-    ratings_list = []
-  
-    while triples_list[idx][0] == u:
-      ratings_list.append((triples_list[idx][1], triples_list[idx][2]))
-      idx = idx + 1
-      if idx == len(triples_list):
-        break
-
-    if len(ratings_list) >= n_train + n_test:
-      user_id = user_id + 1
-      random.shuffle(ratings_list)
-      train = ratings_list[:n_train]
-      train.sort(cmp=pair_comp)
-      test  = ratings_list[n_train:]
-      test.sort(cmp=pair_comp)
-      write_comps_ratings(g1, user_id, train)
-      write_lsvm(g2, user_id, test)
-  g1.close()
-'''  
-	print("Comparisons generated for {0} users".format(user_id))
 
 
 if __name__ == "__main__":
@@ -149,7 +236,7 @@ if __name__ == "__main__":
                       help="Dataset with user-item-rating triples")
   parser.add_argument('-o', '--output_file', action='store', dest='output',
                       default="", help="Prefix for the output files")
-  parser.add_argument('-n', '--train_items', action='store', dest='n_train_ratio', type=float,
+  parser.add_argument('-r', '--train_items', action='store', dest='n_train_ratio', type=float,
                       default=50, help="the ratio for training, e.g., if set 0.2, then 20 percentage for training and rest for test") 
   parser.add_argument('-t', '--test_item',   action='store', dest='n_test_least', type=int,
                       default=10, help="Minimum number of test items per user (Default 10)")

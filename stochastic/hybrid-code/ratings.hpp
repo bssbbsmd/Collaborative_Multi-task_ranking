@@ -7,6 +7,8 @@
 #include <math.h>
 #include <algorithm>
 #include <vector>
+#include <utility>
+#include <map>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -14,24 +16,28 @@
 #include "elements.hpp"
 #include "model.hpp"
 
-class RatingMatrix {
+using namespace std;
+
+class TestMatrix {
   public:
     int                   n_users, n_items;
-    std::vector<rating>   ratings;
-    std::vector<int>      idx;
-
     int                   ndcg_k = 0;
-    bool                  is_dcg_max_computed = false;
-    std::vector<double>   dcg_max;
+    vector<vector<pair<int, double>>>   userwise_test_pairs;
+    vector<vector<pair<int, double>>>   itemwise_test_pairs;
+
+
+    TestMatrix() : n_users(0), n_items(0) {}
+    TestMatrix(int nu, int ni): n_users(nu), n_items(ni) {}
     
-    void compute_dcgmax(int);
-    double compute_user_ndcg(int, const std::vector<double>&) const;
+    vector<double>   compute_user_dcgmax(int, int);     //for each user i.e. itemwise
+    double compute_user_ndcg(int, const std::vector<double>&) const; //for each user i.e. itemwise
+    vector<double>   compute_item_dcgmax(int, int);     //for each item i.e. userwise
+    double compute_item_ndcg(int, const std::vector<double>&) const; //for each item i.e. userwise
 
-    RatingMatrix() : n_users(0), n_items(0) {}
-    RatingMatrix(int nu, int ni): n_users(nu), n_items(ni) {}
+    void read_lsvm_itemwise(const std::string&);
+    void read_lsvm_userwise(const std::string&);
 
-    void read_lsvm(const std::string&);
-    void read_spformat(const std::string&);
+    bool compare_score(double i, double j);
 };
 
 std::ifstream::pos_type filesize(const char* filename)
@@ -40,17 +46,175 @@ std::ifstream::pos_type filesize(const char* filename)
     return in.tellg(); 
 }
 
-double RatingMatrix::compute_user_ndcg(int uid, const std::vector<double>& score) const {
+void TestMatrix::read_lsvm_itemwise(const std::string& filename) {
+  string user_str, attribute_str;
+  stringstream attribute_sstr;
+
+  ifstream f;
+  f.open(filename);
+
+  if(f.is_open()){
+    f >> n_users >> n_items;
+    itemwise_test_pairs.resize(n_users);
+    getline(f, user_str);
+    while(!f.eof()) {
+      getline(f, user_str);
+
+      size_t pos1 = 0, pos2;
+      int uid;
+
+      pos2 = user_str.find(' ', pos1); 
+      if(pos2 == std::string::npos) break;
+      attribute_str = user_str.substr(pos1, pos2-pos1);
+      attribute_sstr.clear(); 
+      attribute_sstr.str(attribute_str);
+      attribute_sstr >> uid;
+      uid--;  // let uid start from 0
+
+      int iid;
+      double sc;
+      pos1 = pos2+1;
+
+      while(1){
+            pos2 = user_str.find(':', pos1);        
+            if(pos2 == std::string::npos) break;
+            attribute_str = user_str.substr(pos1, pos2-pos1);
+            attribute_sstr.clear();
+            attribute_sstr.str(attribute_str);
+            attribute_sstr >> iid;  
+            iid--;  // then iid starts from 0
+
+            pos1 = pos2+1;
+            pos2 = user_str.find(' ', pos1);
+            attribute_str = user_str.substr(pos1, pos2-pos1);
+            attribute_sstr.clear();
+            attribute_sstr.str(attribute_str);
+            attribute_sstr >> sc;
+            pos1 = pos2+1;  
+
+            itemwise_test_pairs[uid].push_back(make_pair(iid, sc));
+      }
+    }
+  }
+  f.close();
+}
+
+void TestMatrix::read_lsvm_userwise(const std::string& filename) {
+  string item_str, attribute_str;
+  stringstream attribute_sstr;
+
+  ifstream f;
+  f.open(filename);
+
+  if(f.is_open()){
+    f >> n_users >> n_items;
+    userwise_test_pairs.resize(n_items);
+    getline(f, item_str);
+    while(!f.eof()) {
+      getline(f, item_str);
+      size_t pos1 = 0, pos2;
+      
+      int iid;
+      pos2 = item_str.find(' ', pos1); 
+      if(pos2 == std::string::npos) break;
+      attribute_str = item_str.substr(pos1, pos2-pos1);
+      attribute_sstr.clear(); 
+      attribute_sstr.str(attribute_str);
+      attribute_sstr >> iid;
+      iid--;  // let iid start from 0
+
+      int uid;
+      double sc;
+      pos1 = pos2+1;
+
+      while(1){
+            pos2 = item_str.find(':', pos1);        
+            if(pos2 == std::string::npos) break;
+            attribute_str = item_str.substr(pos1, pos2-pos1);
+            attribute_sstr.clear();
+            attribute_sstr.str(attribute_str);
+            attribute_sstr >> uid;  
+            uid--;  // then uid starts from 0
+
+            pos1 = pos2+1;
+            pos2 = item_str.find(' ', pos1);
+            attribute_str = item_str.substr(pos1, pos2-pos1);
+            attribute_sstr.clear();
+            attribute_sstr.str(attribute_str);
+            attribute_sstr >> sc;
+            pos1 = pos2+1;  
+
+            userwise_test_pairs[iid].push_back(make_pair(uid, sc));
+      }
+    }
+  }
+  f.close();
+}
+
+bool TestMatrix::compare_score(double i, double j) {
+    return (i>j);
+}
+
+vector<double> TestMatrix::compute_user_dcgmax(int ndcgK) {
+  ndcg_k = ndcgK;
+  vector<double> user_dcg_max(0)
+  user_dcg_max.resize(n_users, 0.);  
+  vector<rating> ratings_current_user(0);
+
+  for(int uid=0; uid < n_users; ++uid) {
+    if(!itemwise_test_pairs[uid].empty()){
+      for(int i=0; i < itemwise_test_pairs[uid].size(); ++i) {
+        ratings_current_user.push_back(itemwise_test_pairs[uid][i].second);
+      } 
+      std::sort(ratings_current_user.begin(), ratings_current_user.end(), compare_score);
+      for(int k=1; k<=ndcg_k; ++k) {
+        user_dcg_max[uid] += (double)(pow(2,ratings_current_user[k-1].score) - 1.) / log2(k+1); 
+      }
+      ratings_current_user.clear();
+    }
+  }
+
+  return  user_dcg_max;
+}
+
+vector<double> TestMatrix::compute_item_dcgmax(int ndcgK) {
+  ndcg_k = ndcgK;
+  vector<double> item_dcg_max(0)
+  item_dcg_max.resize(n_items, 0.);  
+  vector<rating> ratings_current_item(0);
+
+  for(int iid=0; iid < n_items; ++iid) {
+    if(!userwise_test_pairs[iid].empty()){
+      for(int i=0; i < userwise_test_pairs[iid].size(); ++i) {
+        ratings_current_item.push_back(userwise_test_pairs[iid][i].second);
+      } 
+      std::sort(ratings_current_item.begin(), ratings_current_item.end(), compare_score);
+      for(int k=1; k<=ndcg_k; ++k) {
+        item_dcg_max[iid] += (double)(pow(2,ratings_current_item[k-1].score) - 1.) / log2(k+1); 
+      }
+      ratings_current_item.clear();
+    }
+  }
+
+  return  item_dcg_max;
+}
+
+double TestMatrix::compute_user_ndcg(int uid, const std::vector<double>& score) const {
   std::vector<std::pair<double,int> > ranking;
-  for(int j=0; j<score.size(); ++j) ranking.push_back(std::pair<double,int>(score[j],0));
+  
+  for(int j=0; j<score.size(); ++j) 
+    ranking.push_back(std::pair<double,int>(score[j], 0));
 
   double min_score = ranking[0].first;
-  for(int j=0; j<ranking.size(); ++j) min_score = std::min(min_score, ranking[j].first);
+  for(int j=0; j<ranking.size(); ++j) 
+    min_score = std::min(min_score, ranking[j].first);
 
   double dcg = 0.;
   for(int k=1; k<=ndcg_k; ++k) {
     int topk_idx = -1;
     double max_score = min_score - 1.;
+
+    //bubble sort
     for(int j=0; j<ranking.size(); ++j) {
       if ((ranking[j].second == 0) && (ranking[j].first > max_score)) {
         max_score = ranking[j].first;
@@ -58,101 +222,44 @@ double RatingMatrix::compute_user_ndcg(int uid, const std::vector<double>& score
       }
     }
     ranking[topk_idx].second = k;
-     
-    dcg += (double)(pow(2,ratings[idx[uid]+topk_idx].score) - 1) / log2((double)(k+1));
+    
+    dcg += (double)(pow(2, itemwise_test_pairs[uid][topk_idx].second) -1) / std::log2((double)(k+1));
+  //  dcg += (double)(pow(2,ratings[idx[uid]+topk_idx].score) - 1) / log2((double)(k+1));
   }
 
   return dcg / dcg_max[uid];
 } 
 
-void RatingMatrix::read_lsvm(const std::string& filename) {
+double TestMatrix::compute_item_ndcg(int iid, const std::vector<double>& score) const {
+  std::vector<std::pair<double,int> > ranking;
   
-  ratings.clear();
-  idx.clear();
+  for(int j=0; j<score.size(); ++j) 
+    ranking.push_back(std::pair<double,int>(score[j], 0));
 
-  n_users = 0;
-  n_items = 0;
+  double min_score = ranking[0].first;
+  for(int j=0; j<ranking.size(); ++j) 
+    min_score = std::min(min_score, ranking[j].first);
 
-  // Read ratings file for NDCG
-  std::vector<rating> ratings_current_user(0);
-  std::string user_str, attribute_str;
-  std::stringstream attribute_sstr;  
+  double dcg = 0.;
+  for(int k=1; k<=ndcg_k; ++k) {
+    int topk_idx = -1;
+    double max_score = min_score - 1.;
 
-  std::ifstream f;
- 
-  f.open(filename);
-  if (f.is_open()) {
-    int    uid = 0, iid;
-    double sc;
-    idx.push_back(0);
-      
-    while(1) {
-      getline(f, user_str);
-
-      size_t pos1 = 0, pos2;
-      while(1) {
-        pos2 = user_str.find(':', pos1); if (pos2 == std::string::npos) break; 
-        attribute_str = user_str.substr(pos1, pos2-pos1);
-        attribute_sstr.clear(); attribute_sstr.str(attribute_str);
-        attribute_sstr >> iid;
-        n_items = std::max(n_items, iid);
-        --iid;
-        pos1 = pos2+1;
-
-        pos2 = user_str.find(' ', pos1); attribute_str = user_str.substr(pos1, pos2-pos1);
-        attribute_sstr.clear(); attribute_sstr.str(attribute_str);
-        attribute_sstr >> sc;
-        pos1 = pos2+1;
-
-        ratings_current_user.push_back(rating(uid, iid, sc));
+    //bubble sort
+    for(int j=0; j<ranking.size(); ++j) {
+      if ((ranking[j].second == 0) && (ranking[j].first > max_score)) {
+        max_score = ranking[j].first;
+        topk_idx = j;
       }
-      if (ratings_current_user.size() == 0) break;
-         
-      sort(ratings_current_user.begin(), ratings_current_user.end(), rating_userwise);
- 
-      for(int j=0; j<ratings_current_user.size(); ++j) ratings.push_back(ratings_current_user[j]);
-      idx.push_back(ratings.size());
-    
-      ratings_current_user.clear();
- 
-      ++uid;
     }
-
-    n_users = uid;
-
-    printf("%d users, %d items \n", n_users, n_items);
-
-  } else {
-      printf("Error in opening the extracted rating file!\n");
-      std::cout << filename << std::endl;
-      exit(EXIT_FAILURE);
-  }
-  
-  f.close();
-}
-
-void RatingMatrix::compute_dcgmax(int ndcgK) {
-
-  ndcg_k = ndcgK;
-
-  std::vector<rating> ratings_current_user(0);
-
-  dcg_max.resize(n_users, 0.);  
-  for(int uid=0; uid<n_users; ++uid) {
-    for(int i=idx[uid]; i<idx[uid+1]; ++i) ratings_current_user.push_back(ratings[i]);
+    ranking[topk_idx].second = k;
     
-    std::sort(ratings_current_user.begin(), ratings_current_user.end(), rating_scorewise);
-    
-    for(int k=1; k<=ndcg_k; ++k) dcg_max[uid] += (double)(pow(2,ratings_current_user[k-1].score) - 1.) / log2(k+1); 
-    
-    ratings_current_user.clear();
+    dcg += (double)(pow(2, userwise_test_pairs[iid][topk_idx].second) -1) / std::log2((double)(k+1));
+  //  dcg += (double)(pow(2,ratings[idx[uid]+topk_idx].score) - 1) / log2((double)(k+1));
   }
 
-  is_dcg_max_computed = true; 
-}
+  return dcg / dcg_max[iid];
+} 
 
-void RatingMatrix::read_spformat(const std::string& filename) {
-  // read sparse matrix format
-}
 
 #endif

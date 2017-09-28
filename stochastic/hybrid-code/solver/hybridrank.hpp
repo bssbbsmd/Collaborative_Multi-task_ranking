@@ -23,7 +23,7 @@ using namespace std;
 class HybridRank : public Solver{
 	protected:
 		double alpha, beta; // the parameters to set for step_size		
-	     	double gamma; // the weights for squared penalty 
+	    double gamma; // the weights for squared penalty 
 		int learn_choice;
 
    		vector<int> n_comps_by_user, n_comps_by_item;
@@ -46,21 +46,22 @@ void HybridRank::solve(Problem& prob, Model& model,  Evaluator* eval){
 	n_items = prob.n_items;
 	n_train_comps = prob.n_train_comps;
 
-	n_comps_by_user.resize(n_users, 0);
-	n_comps_by_item.resize(n_items, 0);
+	n_comps_by_user = prob.n_pairs_by_user;
+	n_comps_by_item = prob.n_pairs_by_item;
 
+/*
 	for(int i=0; i < n_train_comps; ++i){
 		++n_comps_by_user[prob.train[i].user_id];
 		++n_comps_by_item[prob.train[i].item1_id];
 		++n_comps_by_item[prob.train[i].item2_id];
 	}
-
+*/
 	double time = omp_get_wtime();	
 	initialize(prob, model, init_option);
 	time = omp_get_wtime() - time;
 	cout << "Parameter Initialization time cost .... " << time << endl;
 	
-	int n_max_updates = n_train_comps / n_threads;
+	int n_max_updates = (prob.n_itemwise_train_comps + prob.n_userwise_train_comps)/ n_threads;
 
 	bool flag = false;
 	cout << "Iteration " << "Time " << "PairErr " << "NDCG@10"<<endl;
@@ -251,63 +252,6 @@ bool HybridRank::sgd_pair_step_3(Model& model, const comparison& comp_item, cons
 
 	return true;
 }
-
-
-
-/*
-bool HybridRank::sgd_step(Model& model, const comparison& comp, double lambda, double gam, double step_size){
-	double* user_vec = &(model.U[comp.user_id * model.rank]);
-	double* item1_vec = &(model.V[comp.item1_id * model.rank]);	
-	double* item2_vec = &(model.V[comp.item2_id * model.rank]);
-
-	int n_comps_user = n_comps_by_user[comp.user_id];
-	int n_comps_item1= n_comps_by_item[comp.item1_id];
-	int n_comps_item2= n_comps_by_item[comp.item2_id];
-
-	if(n_comps_user < 1 || n_comps_item1 < 1 || n_comps_item2 < 1) cout << "Error" << endl;
-	if(comp.item1_id > model.n_items || comp.item2_id > model.n_items) printf(" Items id exceeds the maximum number of items\n");
-
-	double prod = 0.;
-	for( int k=0; k < model.rank; k++) prod += user_vec[k] * (item1_vec[k] - item2_vec[k]);
-	if(prod !=  prod){ 
-		cout << "Numerical Error!" <<endl;
-		return false;
-	}
-
-	double grad = 0.;
-	grad = - 1./(1. + exp(prod)); // the derivative of logistic function
-
-
-	double item1_rating_hat = 0.; 
-	for(int k=0; k < model.rank; k++) item1_rating_hat += user_vec[k] * item1_vec[k];  // the estimated rating of item1
-
-	double item2_rating_hat = 0.;
-	for(int k=0; k < model.rank; k++) item2_rating_hat += user_vec[k] * item2_vec[k];  // the estimated rating of item2
-
-	if(grad !=0.){
-		 for(int k=0; k<model.rank; k++) {
-			double user_dir_pair  = grad * comp.comp * (item1_vec[k] - item2_vec[k]) ;
-			double item1_dir_pair = grad * comp.comp * user_vec[k];
-			double item2_dir_pair = grad * -comp.comp * user_vec[k];
-
-			double user_dir_squared  = 2 * ( gam *(comp.item1_rating - item1_rating_hat) * comp.comp * (-item1_vec[k]) + 
-					gam * (comp.item2_rating - item2_rating_hat) * comp.comp * (-item2_vec[k]) + lambda / (double)n_comps_user * user_vec[k]);
-            double item1_dir_squared = 2 * ( gam *(comp.item1_rating - item1_rating_hat) * comp.comp * -user_vec[k] + lambda  / (double)n_comps_item1 * item1_vec[k]);
-            double item2_dir_squared = 2 * ( gam *(comp.item2_rating - item2_rating_hat) * comp.comp * -user_vec[k] + lambda  / (double)n_comps_item2 * item2_vec[k]);
-
-			double user_dir = step_size * (user_dir_pair +  user_dir_squared);
-			double item1_dir = step_size * (item1_dir_pair + item1_dir_squared);
-			double item2_dir = step_size * (item2_dir_pair + item2_dir_squared);
-
-			user_vec[k]  -= user_dir;
-			item1_vec[k] -= item1_dir;
-			item2_vec[k] -= item2_dir;
-		}
-	}
-
-	return true;	
-}
-*/
 
 
 #endif

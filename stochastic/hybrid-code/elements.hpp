@@ -18,11 +18,14 @@ struct rating
 		int temp;
 		temp = user_id; user_id = r.user_id; r.user_id = temp;
 		temp = item_id; item_id = r.item_id; r.item_id = temp;
-    double tempf;
+    	double tempf;
 		tempf = score; score = r.score; r.score = tempf;
 	}
 };
 
+/*
+The compasison here are not limited to item pairs for each, it can also be used for formulating user pairs for each item
+*/
 struct comparison
 {
 	int user_id;
@@ -42,7 +45,7 @@ struct comparison
 		item1_rating = i1_r;
 		item2_id = i2;
 		item2_rating = i2_r;
-    		comp = cp;
+    	comp = cp;
 	}
 	void swap(comparison& c) {
 		int temp;

@@ -27,7 +27,7 @@ class Evaluator {
 
 
 class EvaluatorRating : public Evaluator {
-  RatingMatrix test;
+  TestMatrix test;
 
   public:
     void load_files(const std::string&, const std::string&, std::vector<int>&);
@@ -36,10 +36,11 @@ class EvaluatorRating : public Evaluator {
     int get_nitems() {return test.n_items;}	
 };
 
-void EvaluatorRating::load_files (const std::string& train_repo, const std::string& test_repo, std::vector<int>& ik) {
-  test.read_lsvm(test_repo);
-  test.compute_dcgmax(10);
-
+void EvaluatorRating::load_files (const std::string& itemwise_test_file, const std::string& userwise_test_file, std::vector<int>& ik) {
+  test.read_lsvm_itemwise(itemwise_test_file);
+  test.read_lsvm_userwise(userwise_test_file);
+  test.compute_user_dcgmax(10);
+  test.compute_item_dcgmax(10);
   k = ik;
   std::sort(k.begin(), k.end());
   k_max = k[k.size()-1];

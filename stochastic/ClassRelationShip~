@@ -1,0 +1,176 @@
+
+******************elements.hpp**********************************************************************
+*define the basic data structures
+*************************************************
+struct ratings:
+	int user_id, item_id; double score;
+	
+	fucntion: constructers and
+	void swap(rating& r): swap the values of rwo ratings
+
+struct comparison:
+	int user_id;
+	int item1_id;
+	double item1_rating;
+	int item2_id;
+	double item2_rating;
+	
+global functions:
+	comp_userwise(comparison a, comparison b): //compare using user_id (first) and then item_id;
+	comp_itemwise(comparison a, comparison b): //compare using item_id (first) and then user_id;
+	rating_userwise(rating a, rating b):// compare uing user_id first
+	rating_scorewise(rating a, rating b):
+
+typedef struct rating rating; 
+typedef struct comparison comparison;
+*****************************************************************************************************
+
+
+*************model.hpp*******************************************************************************
+*define the model parameters
+*************************************************  
+class Model:
+	int n_users, n_items, rank;
+	double* U;	// n_users*rank 
+    double* V;	// n_items*rank
+	
+	functions:	
+	allocate(): 	//initialize U and V;
+	de_allocate():  //delete the points of U and V;
+	Unormsq():      //return ||U||^2;
+	Vnormsq(): 	//return ||V||^2;
+*****************************************************************************************************
+
+
+
+******************Problem.hpp  for training**********************************************************
+* read training data and evaluation of training;
+*******************************************************************
+class Problem:
+	int n_users, n_items, n_itemwise_train_comps, n_userwise_train_comps; 
+    double lambda;
+    loss_option_t loss_option = L2_HINGE;
+    vector<comparison>   userwise_train;  // user pairs
+    vector<comparison>   itemwise_train;  // item pairs
+    int[]           userwise_tridx;  // contain the number of pairs for each item
+    int[]           itemwise_tridx;  // contain the number of pairs for each user
+
+    void read_data_userwise(const std::string&);	// read function
+    void read_data_itemwise(const std::string&);
+  
+    int get_nusers() { return n_users; }
+    int get_nitems() { return n_items; }
+    
+    double evaluate(Model& model);
+*****************************************************************************************************
+
+
+******************ratings.hpp************************************************************************
+*The NDCG functions for testing 
+*basic ratings from input lsvm file 
+*************************************************
+class TestMatrix:
+	int n_users,n_items, ndcg_k=0;
+	vector<vector<pair<int, double>>>   userwise_test_pairs;
+    vector<vector<pair<int, double>>>   itemwise_test_pairs;
+	std::vector<double> dcg_max
+
+	functions:
+	vector<double>   compute_user_dcgmax(int, int);     //for each user i.e. itemwise
+    double           compute_user_ndcg(int, const std::vector<double>&) const; //for each user i.e. itemwise
+    vector<double>   compute_item_dcgmax(int, int);     //for each item i.e. userwise
+    double           compute_item_ndcg(int, const std::vector<double>&) const; //for each item i.e. userwise
+
+    void read_lsvm_itemwise(const std::string&);
+    void read_lsvm_userwise(const std::string&);	
+*****************************************************************************************************
+
+
+
+
+******************solver.hpp**********************************************************************
+*define the solver and initialize the model parameters of U and V
+*************************************************
+class Solver:
+	protected:
+	int n_users, n_items, n_train_comps;
+	
+	init_option_t init_optition;
+	int	max_iter;
+
+	int n_threads;
+
+	void initialize(Problems&, Model&, init_optition_t);
+
+	virtual void solve(Problem&, Model&, init_option_t);
+***************************************************************************************************
+
+
+
+
+******************loss.hpp*************************************************************************
+* L1_hinge, L2_hinge, Logistic, Squared
+* Introduce many functions that can generate prediction error and ndcg error
+*************************************************
+enum loss_option_t{L1_HINGE, L2_HINGE, LOGISTIC, SQUARED}
+
+//computer the loss for the testsets using different losses
+double compute_loss(const Model& model, const std::vector<comparison>& TestComps, loss_option_t option);
+
+// loss function for bpr: loss = log(1. + exp(-x));
+double compute_loss_v2(const Model& model, std::vector<std::vector<int> >& Iu, std::vector<std::vector<int> >& noIu);
+
+// sum of squared loss
+double compute_loss(const Model& model, const RatingMatrix& test);
+
+// compute the prediction error (seen in doucoupled matrix factorization but slight different with that error definition)
+double compute_pairwiseError(const RatingMatrix& TestRating, const RatingMatrix& PredictedRating);
+
+// compute the prediction error using the model input
+double compute_pairwiseError(const RatingMatrix& TestRating, const Model& PredictedModel);
+
+
+// compute ndcg error
+double compute_ndcg(const RatingMatrix& TestRating, const std::string& Predict_filename); 
+double compute_ndcg(const RatingMatrix& TestRating, const RatingMatrix& PredictedRating);
+double compute_ndcg(const RatingMatrix& TestRating, const Model& PredictedModel);
+*****************************************************************************************************
+
+
+
+
+
+******************evaluate.hpp************************************************************************
+*evaluate the model and ge the ndcg and prediction error of test data
+***************************************************************************************
+class Evaluator:
+	int k_max;
+	vector<int> k;
+
+	virtual void evaluate(const Model&) {} 
+    	virtual void evaluateAUC(const Model&) {}
+    	virtual void load_files(const std::string&, const std::string&, std::vector<int>&) = 0;
+
+class EvaluatorBinary: public Evaluator
+	vector<std::unordered_set<int> > train, test;
+	void load_files(const std::string&, const std::string&, std::vector<int>&);
+    	void evaluate(const Model&);
+    	void evaluateAUC(const Model&);
+
+class EvaluatorRating: Evaluator
+	RatingMatrix test;
+	void load_files(const std::string&, const std::string&, std::vector<int>&);
+    	void evaluate(const Model&);   //get ndcg error and pairwise prediction accuracy
+*****************************************************************************************************
+
+
+
+******************collrank.cpp************************************************************************
+* read configuration file and run the collrank algorithms
+*************************************************
+main functions:
+	load configurations;
+	call the solvers and
+	return the results.
+
+*****************************************************************************************************

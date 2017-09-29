@@ -73,7 +73,8 @@ void Problem::read_data_itemwise(const std::string &train_file) {
     for(int i=0; i<n_users; i++)  n_pairs_by_user[i] = 0;
 
     while (f >> uid >> i1id >> i1_r >> i2id >> i2_r) {
-      --uid; --i1id; --i2id; // now user_id and item_id starts from 0
+      // now user_id and item_id starts from 0
+      --uid; --i1id; --i2id; 
       n_pairs_by_user[uid] = n_pairs_by_user[uid]+1;      
       itemwise_train.push_back(comparison(uid, i1id, i1_r, i2id, i2_r, 1));
     }
@@ -109,7 +110,8 @@ void Problem::read_data_userwise(const std::string &train_file) {
     for(int i=0; i<n_items; i++)  n_pairs_by_item[i] = 0;
 
     while (f >> iid >> u1id >> u1_r >> u2id >> u2_r) {
-      --iid; --u1id; --u2id; // now user_id and item_id starts from 0
+      // now user_id and item_id starts from 0
+      --iid; --u1id; --u2id; 
       n_pairs_by_item[iid] = n_pairs_by_item[iid]+1;      
       userwise_train.push_back(comparison(iid, u1id, u1_r, u2id, u2_r, 1));
     }

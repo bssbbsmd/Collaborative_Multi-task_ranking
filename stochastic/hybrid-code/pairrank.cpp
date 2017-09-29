@@ -26,6 +26,7 @@ struct configuration {
   int update_choice = 1;
   double lambda = 1000, tol = 1e-5;
   double alpha, beta, gamma;
+  double step_size=0.01;
   bool evaluate_every_iter = true;
 };
 
@@ -88,11 +89,14 @@ int readConf(struct configuration& conf, std::string conFile) {
       if (key == "nthreads") {
         conf.n_threads = std::stoi(val);
       }
-      if (key == "stepsize_alpha") {
+      if (key == "alpha") {
         conf.alpha = std::stod(val);
       }
-      if (key == "stepsize_beta") {
+      if (key == "beta") {
         conf.beta = std::stod(val);
+      }
+      if (key == "step_size"){
+        conf.step_size = std::stod(val);
       }
     }
   }
@@ -196,7 +200,7 @@ int main (int argc, char* argv[]) {
   }else if(conf.algo == "hybridrank"){
   	cout << "**************n_threads="<<conf.n_threads<<"**************"<<endl;
   	//printf("iteration, training time (sec), pairwise error, ndcg@10\n");
-  	Solver* mySolver = new HybridRank(conf.alpha, conf.beta, conf.gamma, INIT_RANDOM, conf.n_threads, conf.max_iter, conf.update_choice);
+  	Solver* mySolver = new HybridRank(conf.alpha, conf.beta, conf.gamma, INIT_RANDOM, conf.n_threads, conf.max_iter, conf.update_choice, conf.step_size);
   	mySolver->solve(prob, model, eval);		
   	delete mySolver;
   	cout<<endl;	

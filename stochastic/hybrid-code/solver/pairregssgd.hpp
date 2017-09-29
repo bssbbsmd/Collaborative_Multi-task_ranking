@@ -65,9 +65,9 @@ void SolverPairRegSSGD::solve(Problem& prob, Model& model,  Evaluator* eval){
 		#pragma omp parallel
 		{
 			std::mt19937 gen1(n_threads*iter + omp_get_thread_num());
-			std::mt19937 gen2(n_threads*iter + omp_get_thread_num());
-			std::uniform_int_distribution<int> randidx(0, n_train_comps - 1);
-			std::uniform_real_distribution<double> randz(0.0, 1.0);			
+			std::mt19937 gen2(n_threads*iter + omp_get_thread_num());		
+			std::uniform_real_distribution<double> randz(0.0, 1.0);	
+			std::uniform_int_distribution<int> randidx(0, n_train_comps - 1);		
 
 			for(int n_updates = 1; n_updates < n_max_updates; ++ n_updates){
 				int idx = randidx(gen1);	

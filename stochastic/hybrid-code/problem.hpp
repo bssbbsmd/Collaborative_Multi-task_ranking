@@ -11,10 +11,9 @@
 #include <fstream>
 
 #include "elements.hpp"
-#include "loss.hpp"
+#include "loss2.hpp"
 
 using namespace std;
-
 
 /**Reminds:  the input ids (new_user_id = original_user_id - 1 and item_id) starts from 0 **/
 
@@ -72,7 +71,7 @@ void Problem::read_data_itemwise(const std::string &train_file) {
 
     for(int i=0; i<n_users; i++)  n_pairs_by_user[i] = 0;
 
-    while (f >> uid >> i1id >> i1_r >> i2id >> i2_r) {
+    while (f >> uid >> i1id >> i1_r >> i2id >> i2_r) { 
       // now user_id and item_id starts from 0
       --uid; --i1id; --i2id; 
       n_pairs_by_user[uid] = n_pairs_by_user[uid]+1;      
@@ -87,13 +86,11 @@ void Problem::read_data_itemwise(const std::string &train_file) {
   printf("%d users, %d items, %d itemwise comparisons\n", n_users, n_items, n_itemwise_train_comps);
 }	
 
-void Problem::read_data_userwise(const std::string &train_file) {
-  // Prepare to read files
-  n_users = n_items = 0;
+void Problem::read_data_userwise(const std::string &train_file) { 
+  n_users = n_items = 0;  // Prepare to read files
   ifstream f;
 
-  // Read training comparisons
-  f.open(train_file);
+  f.open(train_file);     // Read training comparisons
 
   if (f.is_open()) {
     int iid, u1id, u2id, uid_current = 0;
@@ -124,14 +121,14 @@ void Problem::read_data_userwise(const std::string &train_file) {
   printf("%d users, %d items, %d userwise comparisons\n", n_users, n_items, n_userwise_train_comps);
 } 
 
+/*
 double Problem::evaluate(Model& model) {
   double l = compute_loss(model, train, loss_option);
   double u = model.Unormsq();
   double v = model.Vnormsq();
   double f = l + lambda*(u+v);
-//  printf("%f, %f, %f, %f", f, l, u, v);
   return f;
-}
+}*/
 
 
 #endif

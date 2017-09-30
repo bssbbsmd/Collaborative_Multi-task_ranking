@@ -2,7 +2,7 @@ CC=g++
 CFLAG=-std=c++11 -fopenmp -O3
 
 col:
-	$(CC) $(CFLAG) -o pairrank code/pairrank.cpp 
+	$(CC) $(CFLAG) -o pairrank hybrid-code/pairrank.cpp 
 
 run:
 	./pairrank

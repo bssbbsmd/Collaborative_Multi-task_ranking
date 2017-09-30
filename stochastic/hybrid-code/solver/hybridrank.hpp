@@ -49,6 +49,9 @@ class HybridRank : public Solver{
 		void solve(Problem&, Model&, Evaluator* eval);
 };
 
+// Problem contains the training data;
+// Model contains the model parameters U and V;
+// Evaluate contains the evaluations, which contains the testing data;
 void HybridRank::solve(Problem& prob, Model& model,  Evaluator* eval){
 	n_users = prob.n_users;
 	n_items = prob.n_items;
@@ -65,8 +68,8 @@ void HybridRank::solve(Problem& prob, Model& model,  Evaluator* eval){
 	}
 */
 	double time = omp_get_wtime();	
-	initialize(prob, model, init_option);
-	time = omp_get_wtime() - time;
+	initialize(prob, model, init_option); 
+	time = omp_get_wtime() - time; 
 	cout << "Parameter Initialization time cost .... " << time << endl;
 	
 	int n_max_updates = (prob.n_itemwise_train_comps + prob.n_userwise_train_comps)/ n_threads;
@@ -116,7 +119,7 @@ void HybridRank::solve(Problem& prob, Model& model,  Evaluator* eval){
 
 		time = time + (omp_get_wtime() - time_single_iter);
 		cout << iter+1 << " " << time << " ";
-		double f = prob.evaluate(model);
+		//double f = prob.evaluate(model);
 		eval->evaluate(model);
 		cout << endl;
 	}
@@ -246,19 +249,18 @@ void HybridRank::sgd_itemwise_step(Model& model, const comparison& comp, double 
 	double prod = 0.;
 	for( int k=0; k < model.rank; k++) prod += user_vec[k] * (item1_vec[k] - item2_vec[k]);
 	if(prod !=  prod){ 
-		//cout << "Numerical Error!" <<endl;
+		cout << "Numerical Error!" <<endl;
 		return false;
 	}
-
 
 	double grad = 0.;
 	grad = - 1./(1. + exp(prod));
 
 	if(grad !=0.){
 		 for(int k=0; k<model.rank; k++) {
-			double user_dir  = step_size * (grad * comp.comp * (item1_vec[k] - item2_vec[k]) + 2 * lambda /(double)n_comps_user * user_vec[k]);
-			double item1_dir = step_size * (grad * comp.comp * user_vec[k] + 2 * lambda / (double) n_comps_item1 * item1_vec[k]);
-			double item2_dir = step_size * (grad * -comp.comp * user_vec[k] + 2 * lambda  / (double)n_comps_item2 * item2_vec[k]);
+			double user_dir  = stepsize * (grad * comp.comp * (item1_vec[k] - item2_vec[k]) + 2 * lambda /(double)n_comps_user * user_vec[k]);
+			double item1_dir = stepsize * (grad * comp.comp * user_vec[k] + 2 * lambda / (double) n_comps_item1 * item1_vec[k]);
+			double item2_dir = stepsize * (grad * -comp.comp * user_vec[k] + 2 * lambda  / (double)n_comps_item2 * item2_vec[k]);
 
 			user_vec[k]  -= user_dir;
 			item1_vec[k] -= item1_dir;
@@ -292,8 +294,28 @@ void HybridRank::sgd_userwise_step(Model& model, const comparison& comp, double 
 		return ;
 	}
 
+	double prod = 0.;
+	for(int k=0; k<model.rank; k++)	prod += (user1_vec[k]-user2_vec[k])*item_vec[k]; 
 
+	if(prod !=  prod){ 
+		cout << "Numerical Error!" <<endl;
+		return false;
+	}
+	
+	doule grad = 0.;
+	grad = -1./(1. + exp(prod));  // - 1/ (1+e^(r_{u1i}-r_{u2i}));	
 
+	if(grad != 0.){
+		for(int k=0; k < model.rank; k++){
+			double item_dir = stepsize * (grad * comp.comp * (user1_vec[k] - user2_vec[k]) + 2 * lambda / (double)n_comps_item * item_vec[k]);
+			double user1_dir= stepsize * (grad * comp.comp * item_vec[k] + 2 * lambda / (double)n_comps_user1 * user1_vec[k]);
+			double user2_dir= stepsize * (grad * -comp.comp* item_vec[k] + 2 * lambda / (double)n_comps_user2 * user2_vec[k]);
+
+			item_vec -= item_dir;
+			user1_vec -= user1_dir;
+			user2_vec -= user2_dir;
+		}
+	}
 }
 
 /*

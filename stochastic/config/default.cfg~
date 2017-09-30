@@ -40,7 +40,7 @@ step_size = 0.01
 [balance factor]
 # the hyperparameters to set for weighting different loss functions
 alpha = 0.5
-beta = 0.5
+beta = 0
 
 SGD = true
 SSGD = true

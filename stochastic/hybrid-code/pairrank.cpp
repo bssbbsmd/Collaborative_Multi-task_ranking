@@ -154,7 +154,7 @@ int main (int argc, char* argv[]) {
 
   std::cout << "Reading two test pairwise file : " << std::endl;
 
-  //load two pairwise test file,
+  //load two pairwise test file, and compute the dcg_max for the testmatrix
   eval->load_files(conf.itemwise_test_file, conf.userwise_test_file, k_list);
 
   int n_users_test = eval->get_nusers();

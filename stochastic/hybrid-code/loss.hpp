@@ -19,6 +19,80 @@
 
 enum loss_option_t {L1_HINGE, L2_HINGE, LOGISTIC, SQUARED};
 
+//sum of squares loss 
+//if choice==0 evaluate personalized ranking, if choice==1, evaluate user targeting performance 
+double compute_ndcg(const TestMatrix& test, const Model& model, int choice) {
+    double ndcg_sum = 0.;
+    std::vector<double> score;
+    int n_valid_ids = 0;
+
+    //compute the ndcg for personalized ranking
+    if(choice == 0){
+        for(int uid=0; uid < model.n_users; ++uid) {
+            double dcg = 0.;
+            score.clear();
+            vector<pair<int, double>> user_pairs = test.itemwise_test_pairs[uid];
+            if(!user_pairs.empty()){
+                for(int i = 0; i< user_pairs.size(); ++i) {
+                    int iid = user_pairs[i].first;
+                    if (iid < model.n_items) {
+                        double prod = 0.;
+                        for(int k=0; k< model.rank; ++k) 
+                            prod += model.U[uid * model.rank + k] * model.V[iid * model.rank + k]; //estimated socres
+                        score.push_back(prod);
+                    }else {
+                        score.push_back(-1e10);
+                    }
+                }
+                ndcg_sum += test.compute_user_ndcg(uid, score);
+                n_valid_ids++;
+            } 
+        }
+        ndcg_sum = ndcg_sum/(double)n_valid_ids;
+    }
+    //computer the ndcg for the user targeting
+    if(choice == 1){
+        for(int iid=0; iid < model.n_items; iid++){
+            double dcg = 0.;
+            score.clear();
+
+            vector<pair<int, double>> item_pairs = test.userwise_test_pairs[iid];
+            if(!item_pairs.empty()){
+                for(int i=0; i < item_pairs.size(); i++){
+                    int uid = item_pairs[i].first;
+                    if(uid < model.n_users){
+                        double prod = 0.;
+                        for(int k=0; k< model.rank; ++k)
+                            prod += model.U[uid * model.rank + k] * model.V[iid * model.rank + k]; //estimated socres
+                        score.push_back(prod);
+                    }
+                }
+            }
+            ndcg_sum += test.compute_item_ndcg(iid, score);
+            n_valid_ids++;
+        }
+        ndcg_sum = ndcg_sum/(double)n_valid_ids;
+    }
+    return ndcg_sum;
+}
+
+/*
+double compute_loss(const Model& model, const TestMatrix& test, int choice) {
+  double p = 0.;
+  #pragma omp parallel for reduction(+:p) 
+  for(int i=0; i<test.ratings.size(); ++i) {
+    double *user_vec  = &(model.U[test.ratings[i].user_id * model.rank]);
+    double *item_vec  = &(model.V[test.ratings[i].item_id * model.rank]);
+    double d = 0.;
+    for(int j=0; j<model.rank; ++j) d += user_vec[j] * item_vec[j];
+    p += .5 * pow(test.ratings[i].score - d, 2.);
+  }
+     
+  return p;   
+}
+*/
+
+/*
 // binary classification loss
 double compute_loss(const Model& model, const std::vector<comparison>& TestComps, loss_option_t option) {
   double p = 0.;
@@ -51,8 +125,10 @@ double compute_loss(const Model& model, const std::vector<comparison>& TestComps
      
   return p;		
 }
+*/
 
-// loss function for bpr
+
+/*
 double compute_loss_v2(const Model& model, std::vector<std::vector<int> >& Iu, std::vector<std::vector<int> >& noIu) {
   double p = 0.;
   #pragma omp parallel for reduction (+ : p)
@@ -84,20 +160,7 @@ double compute_loss_v2(const Model& model, std::vector<std::vector<int> >& Iu, s
 
 
 
-// sum of squares loss
-double compute_loss(const Model& model, const RatingMatrix& test) {
-  double p = 0.;
-  #pragma omp parallel for reduction(+:p) 
-  for(int i=0; i<test.ratings.size(); ++i) {
-    double *user_vec  = &(model.U[test.ratings[i].user_id * model.rank]);
-    double *item_vec  = &(model.V[test.ratings[i].item_id * model.rank]);
-    double d = 0.;
-    for(int j=0; j<model.rank; ++j) d += user_vec[j] * item_vec[j];
-    p += .5 * pow(test.ratings[i].score - d, 2.);
-  }
-     
-  return p;		
-}
+
 
 double compute_pairwiseError(const RatingMatrix& TestRating, const RatingMatrix& PredictedRating) {
 
@@ -143,12 +206,7 @@ double compute_pairwiseError(const RatingMatrix& TestRating, const RatingMatrix&
 }
 
 
-/**
-** compute the pairwise loss (zero-one loss)
-**/
-
 double compute_pairwiseError(const RatingMatrix& TestRating, const Model& PredictedModel) {
-
   double sum_correct = 0.;
   int neg_user = 0;
   #pragma omp parallel for reduction(+:sum_correct, neg_user) 
@@ -166,8 +224,7 @@ double compute_pairwiseError(const RatingMatrix& TestRating, const Model& Predic
       else {
         score[iid] = -1e10;
       }
-
-//      if (TestRating.ratings[i].score > max_sc) max_sc = TestRating.ratings[i].score;
+//    if (TestRating.ratings[i].score > max_sc) max_sc = TestRating.ratings[i].score;
     }
 
 //    max_sc = max_sc - .1;
@@ -307,7 +364,7 @@ double compute_ndcg(const RatingMatrix& TestRating, const Model& PredictedModel)
 
   return ndcg_sum / (double)PredictedModel.n_users;
 }
-
+*/
 
 
 #endif

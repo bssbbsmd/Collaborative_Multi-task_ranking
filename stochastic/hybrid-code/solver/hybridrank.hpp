@@ -23,12 +23,14 @@ using namespace std;
 class HybridRank : public Solver{
 	protected:
 		double alpha, beta; // the parameters to set for step_size		
-	    double gamma; // the weights for squared penalty 
+	    double lambda; // the weights for squared penalty 
 		int learn_choice;
 		double step_size;
 
-   		vector<int> n_comps_by_user, n_comps_by_item;
+   		vector<int> n_comps_by_user_u, n_comps_by_user_i;
+   		vector<int> n_comps_by_item_u, n_comps_by_item_i;
 
+   		void sgd_reg_step(Model&, const rating&, double, double);
    		void sgd_itemwise_reg_step(Model&, const comparison&, double, double);
    		void sgd_userwise_reg_step(Model&, const comparison&, double, double);
 		void sgd_itemwise_step(Model&, const comparison&, double, double);
@@ -44,8 +46,8 @@ class HybridRank : public Solver{
 
 	public:
 		HybridRank(): Solver(){}
-		HybridRank(double alp, double bet, double gam, init_option_t init, int n_th, int m_it=10, int update_choice=1, double stepsize=0.01):
-			 Solver(init, m_it, n_th), alpha(alp), beta(bet), gamma(gam), learn_choice(update_choice), step_size(stepsize) {}
+		HybridRank(double alp, double bet, double lam, init_option_t init, int n_th, int m_it=10, int update_choice=1, double stepsize=0.01):
+			 Solver(init, m_it, n_th), alpha(alp), beta(bet), lambda(lam), learn_choice(update_choice), step_size(stepsize) {}
 		void solve(Problem&, Model&, Evaluator* eval);
 };
 
@@ -55,10 +57,12 @@ class HybridRank : public Solver{
 void HybridRank::solve(Problem& prob, Model& model,  Evaluator* eval){
 	n_users = prob.n_users;
 	n_items = prob.n_items;
-	n_train_comps = prob.n_train_comps;
+	//n_train_comps = prob.n_train_comps;
 
-	n_comps_by_user = prob.n_pairs_by_user;
-	n_comps_by_item = prob.n_pairs_by_item;
+	n_comps_by_user_u = prob.n_pairs_by_user_u;
+	n_comps_by_user_i = prob.n_pairs_by_user_i;
+	n_comps_by_item_u = prob.n_pairs_by_item_u;
+	n_comps_by_item_i = prob.n_pairs_by_item_i;
 
 /*
 	for(int i=0; i < n_train_comps; ++i){
@@ -70,8 +74,8 @@ void HybridRank::solve(Problem& prob, Model& model,  Evaluator* eval){
 	double time = omp_get_wtime();	
 	initialize(prob, model, init_option); 
 	time = omp_get_wtime() - time; 
-	cout << "Parameter Initialization time cost .... " << time << endl;
-	
+	cout << "Parameter Initialization time cost .... " << time << endl;	
+
 	int n_max_updates = (prob.n_itemwise_train_comps + prob.n_userwise_train_comps)/ n_threads;
 
 	bool flag = false;
@@ -81,49 +85,234 @@ void HybridRank::solve(Problem& prob, Model& model,  Evaluator* eval){
 		#pragma omp parallel
 		{
 			std::mt19937 gen(n_threads*iter + omp_get_thread_num());   // seed1
+			std::uniform_int_distribution<int> 	 rating_randidx(0, prob.n_train_rating-1);
 			std::uniform_int_distribution<int> itemwise_randidx(0, prob.n_itemwise_train_comps-1);
 			std::uniform_int_distribution<int> userwise_randidx(0, prob.n_userwise_train_comps-1);	
+
 			std::uniform_real_distribution<double> randa(0.0, 1.0);	
-			std::uniform_real_distribution<double> randb(0.0, 1.0);
-			std::uniform_real_distribution<double> randc(0.0, 1.0);
+			//std::uniform_real_distribution<double> randb(0.0, 1.0);
+			//std::uniform_real_distribution<double> randc(0.0, 1.0);
 
-			for(int n_updates = 1; n_updates < n_max_updates; ++ n_updates){
-				double thd1 = alpha /(alpha+beta);
-				double thd2 = alpha /(1-beta);
-				double thd3 = beta / (1-alpha);
-				
-				double stepsize = step_size / pow(2.0, iter);
+			//double stepsize = step_size;
+			double stepsize = step_size / pow(2.0, iter);
 
-				double a = randa(gen);	
+			for(int n_updates = 1; n_updates < n_max_updates; ++ n_updates){	
 
-				//optimizing personalized ranking
-				if(a < thd1){
+				//sample a value between 0 and 1
+				double a = randa(gen);
+
+				if(a<alpha && a>=0){ //optimizing personalized ranking
 					int item_pair_idx = itemwise_randidx(gen);
-					double b = randb(gen);					
-					if(b < thd2){ //update item pairwise loss
-						sgd_itemwise_step(model, porb.itemwise_train[item_pair_idx], gamma, stepsize);
-					}else{ //update mf
-						sgd_itemwise_reg_step(model, porb.itemwise_train[item_pair_idx], gamma, stepsize);
-					}
-				} else { //optimizing user targeting
+					sgd_itemwise_step(model, prob.itemwise_train[item_pair_idx], lambda, stepsize);
+				}
+				else if( alpha <= a && a <= alpha +beta ){
 					int user_pair_idx = userwise_randidx(gen);
-					double c = randc(gen);
-					if(c < thd3){
-						sgd_userwise_step(model, prob.userwise_train[user_pair_idx], gamma, stepsize);
+					sgd_userwise_step(model, prob.userwise_train[user_pair_idx], lambda, stepsize);
+				} else {
+					//int item_pair_idx = itemwise_randidx(gen);
+				    //sgd_itemwise_reg_step(model, prob.itemwise_train[item_pair_idx], lambda, stepsize);
+					int train_rating_idx = rating_randidx(gen);
+					sgd_reg_step(model, prob.rating_train[train_rating_idx], lambda, stepsize);					
+				}
+/*
+				if(alpha!=0 || beta!=0){
+					double thd1,thd2,thd3;
+					
+					thd1 = alpha /(alpha + beta);
+
+					if(alpha!=1){
+						thd3 = beta / (1-alpha);
 					}else{
-						sgd_userwise_reg_step(model, prob.userwise_train[user_pair_idx], gamma, stepsize);
+						thd3 = 0.;
 					}
-				}				
+
+					if(beta!=1)	{
+						thd2 = alpha /(1-beta);
+					}else{
+						thd2 = 0.;
+					}
+					//cout << thd1 << " " << thd2 << " " << thd3 << endl;
+					double a = randa(gen);	
+					if(a < thd1){	
+					//optimizing personalized ranking				
+						double b = randb(gen);					
+						if(b < thd2){ //update item pairwise loss
+							int item_pair_idx = itemwise_randidx(gen);
+							sgd_itemwise_step(model, prob.itemwise_train[item_pair_idx], lambda, stepsize);
+						}else{ //update mf
+						//	int item_pair_idx = itemwise_randidx(gen);
+						//	sgd_itemwise_reg_step(model, prob.itemwise_train[item_pair_idx], lambda, stepsize);
+							int train_rating_idx = rating_randidx(gen);
+							sgd_reg_step(model, prob.rating_train[train_rating_idx], lambda, stepsize);
+						}
+					} 
+					else { 
+					//optimizing user targeting					
+						double c = randc(gen);
+						if(c < thd3){
+							int user_pair_idx = userwise_randidx(gen);
+							sgd_userwise_step(model, prob.userwise_train[user_pair_idx], lambda, stepsize);
+						}else{
+						//	int user_pair_idx = userwise_randidx(gen);
+						//	sgd_userwise_reg_step(model, prob.userwise_train[user_pair_idx], lambda, stepsize);
+							int train_rating_idx = rating_randidx(gen);
+							sgd_reg_step(model, prob.rating_train[train_rating_idx], lambda, stepsize);
+						}
+					}
+				}else{
+
+
+				}	
+*/			
 			}
 		}
-
 		time = time + (omp_get_wtime() - time_single_iter);
 		cout << iter+1 << " " << time << " ";
 		//double f = prob.evaluate(model);
+		//cout << model.n_users<< endl;
 		eval->evaluate(model);
 		cout << endl;
 	}
  
+}
+
+void HybridRank::sgd_reg_step(Model& model, const rating& rat, double lambda, double stepsize){
+
+	int uid = rat.user_id;
+	int iid = rat.item_id;
+	double score = rat.score;
+
+	//cout<< uid << ":" << iid << ":" << score << endl;
+	double* user_vec  = &(model.U[ uid * model.rank]);
+	double* item_vec = &(model.V[ iid * model.rank]);    
+
+	int n_comps_user = n_comps_by_user_u[uid];
+	int n_comps_item = n_comps_by_item_i[iid];
+
+	//cout << "break point 1" << endl;
+
+	if(n_comps_user < 1 || n_comps_item < 1) {
+		n_comps_item = 1;
+		n_comps_user = 1;
+	}
+
+	if(uid >= model.n_users || iid >= model.n_items){
+		printf("Pointwise, id exceeds the maximum number\n");
+		return ;
+	}
+
+	double rating_hat = 0.;
+	for(int k=0; k < model.rank; k++)
+		rating_hat += user_vec[k] * item_vec[k];
+
+	for(int k=0; k < model.rank; k++){
+		double user_dir = 2 * stepsize * ( (score - rating_hat) * -item_vec[k] + lambda / (double) n_comps_user * user_vec[k]);
+		double item_dir = 2 * stepsize * ( (score - rating_hat) * -user_vec[k] + lambda / (double) n_comps_item * item_vec[k]);
+	
+		user_vec[k] -= user_dir;
+		item_vec[k] -= item_dir;
+	}
+}
+
+
+void HybridRank::sgd_itemwise_step(Model& model, const comparison& comp, double lambda, double stepsize){
+	int uid = comp.user_id;
+	int iid1= comp.item1_id;
+	int iid2= comp.item2_id;
+	double sc1 = comp.item1_rating;
+	double sc2 = comp.item2_rating;
+
+	double* user_vec  = &(model.U[ uid * model.rank]);
+	double* item1_vec = &(model.V[ iid1 * model.rank]);    
+	double* item2_vec = &(model.V[ iid2 * model.rank]);
+
+	int n_comps_user = n_comps_by_user_u[uid];
+	int n_comps_item1= n_comps_by_user_i[iid1];
+	int n_comps_item2= n_comps_by_user_i[iid2];
+
+	if(n_comps_user < 1 || n_comps_item1 < 1 || n_comps_item2 < 1) {
+		cout << "No training pair Error" << endl;
+		return ;
+	}
+
+	if(iid1 > model.n_items || iid2 > model.n_items) {
+		printf(" Items id exceeds the maximum number of items\n");
+		return ;
+	}
+
+	double prod = 0.;
+	
+	for( int k=0; k < model.rank; k++) 
+		prod += user_vec[k] * (item1_vec[k] - item2_vec[k]);
+
+	if(prod !=  prod){ 
+		cout << "Numerical Error!" <<endl;
+		return;
+	}
+
+	double grad = 0.;
+	grad = - 1./(1. + exp(prod));
+
+	if(grad !=0.){
+		 for(int k=0; k<model.rank; k++) {
+			double user_dir  = stepsize * (grad * comp.comp * (item1_vec[k] - item2_vec[k]) + 2 * lambda /(double)n_comps_user * user_vec[k]);
+			double item1_dir = stepsize * (grad * comp.comp * user_vec[k] + 2 * lambda / (double) n_comps_item1 * item1_vec[k]);
+			double item2_dir = stepsize * (grad * -comp.comp * user_vec[k] + 2 * lambda  / (double)n_comps_item2 * item2_vec[k]);
+
+		//	user_vec[k]  -= user_dir;
+			item1_vec[k] -= item1_dir;
+			item2_vec[k] -= item2_dir;
+		}
+	}
+}
+
+void HybridRank::sgd_userwise_step(Model& model, const comparison& comp, double lambda, double stepsize){
+	int iid = comp.user_id;
+	int uid1= comp.item1_id;
+	int uid2= comp.item2_id;
+	double sc1 = comp.item1_rating;
+	double sc2 = comp.item2_rating;
+
+	double* user1_vec = &(model.U[ uid1 * model.rank]);
+	double* user2_vec = &(model.U[ uid2 * model.rank]);
+	double* item_vec  = &(model.V[ iid * model.rank]);
+
+	int n_comps_user1 = n_comps_by_item_u[uid1];
+	int n_comps_user2 = n_comps_by_item_u[uid2];
+	int n_comps_item  = n_comps_by_item_i[iid];
+
+	if(n_comps_user1 < 1 || n_comps_user2 < 1 || n_comps_item < 1) {
+		cout << "No training pair Error" << endl;
+		return ;
+	}
+
+	if(uid1 > model.n_users || uid2 > model.n_users) {
+		printf(" Items id exceeds the maximum number of items\n");
+		return ;
+	}
+
+	double prod = 0.;
+	for(int k=0; k<model.rank; k++)	prod += (user1_vec[k]-user2_vec[k])*item_vec[k]; 
+
+	if(prod !=  prod){ 
+		cout << "Numerical Error!" <<endl;
+		return;
+	}
+	
+	double grad = 0.;
+	grad = -1./(1. + exp(prod));  // - 1/ (1+e^(r_{u1i}-r_{u2i}));	
+
+	if(grad != 0.){
+		for(int k=0; k < model.rank; k++){
+			double item_dir = stepsize * (grad * comp.comp * (user1_vec[k] - user2_vec[k]) + 2 * lambda / (double)n_comps_item * item_vec[k]);
+			double user1_dir= stepsize * (grad * comp.comp * item_vec[k] + 2 * lambda / (double)n_comps_user1 * user1_vec[k]);
+			double user2_dir= stepsize * (grad * -comp.comp* item_vec[k] + 2 * lambda / (double)n_comps_user2 * user2_vec[k]);
+
+		//	item_vec[k] -= item_dir;
+			user1_vec[k] -= user1_dir;
+			user2_vec[k] -= user2_dir;
+		}
+	}
 }
 
 
@@ -138,12 +327,12 @@ void HybridRank::sgd_itemwise_reg_step(Model& model, const comparison& comp, dou
 	double* item1_vec = &(model.V[ iid1 * model.rank]);    
 	double* item2_vec = &(model.V[ iid2 * model.rank]);
 
-	int n_comps_user = n_comps_by_user[uid];
-	int n_comps_item1= n_comps_by_item[iid1];
-	int n_comps_item2= n_comps_by_item[iid2];
+	int n_comps_user = n_comps_by_user_u[uid];
+	int n_comps_item1= n_comps_by_user_i[iid1];
+	int n_comps_item2= n_comps_by_user_i[iid2];
 
 	if(n_comps_user < 1 || n_comps_item1 < 1 || n_comps_item2 < 1) {
-		cout << "No training pair Error" << endl;
+		cout << "Error: no training pair for user "<< uid << endl;
 		return ;
 	}
 
@@ -187,12 +376,12 @@ void HybridRank::sgd_userwise_reg_step(Model& model, const comparison& comp, dou
 	double* user2_vec = &(model.U[ uid2 * model.rank]);
 	double* item_vec  = &(model.V[ iid * model.rank]);
 
-	int n_comps_user1 = n_comps_by_user[uid1];
-	int n_comps_user2 = n_comps_by_user[uid2];
-	int n_comps_item  = n_comps_by_item[iid];
+	int n_comps_user1 = n_comps_by_item_u[uid1];
+	int n_comps_user2 = n_comps_by_item_u[uid2];
+	int n_comps_item  = n_comps_by_item_i[iid];
 
 	if(n_comps_user1 < 1 || n_comps_user2 < 1 || n_comps_item < 1) {
-		cout << "No training pair Error" << endl;
+		cout << "Error: no training pair for item "<< iid << endl;
 		return ;
 	}
 
@@ -221,102 +410,6 @@ void HybridRank::sgd_userwise_reg_step(Model& model, const comparison& comp, dou
 	}
 }
 
-void HybridRank::sgd_itemwise_step(Model& model, const comparison& comp, double lambda, double stepsize){
-	int uid = comp.user_id;
-	int iid1= comp.item1_id;
-	int iid2= comp.item2_id;
-	double sc1 = comp.item1_rating;
-	double sc2 = comp.item2_rating;
-
-	double* user_vec  = &(model.U[ uid * model.rank]);
-	double* item1_vec = &(model.V[ iid1 * model.rank]);    
-	double* item2_vec = &(model.V[ iid2 * model.rank]);
-
-	int n_comps_user = n_comps_by_user[uid];
-	int n_comps_item1= n_comps_by_item[iid1];
-	int n_comps_item2= n_comps_by_item[iid2];
-
-	if(n_comps_user < 1 || n_comps_item1 < 1 || n_comps_item2 < 1) {
-		cout << "No training pair Error" << endl;
-		return ;
-	}
-
-	if(iid1 > model.n_items || iid2 > model.n_items) {
-		printf(" Items id exceeds the maximum number of items\n");
-		return ;
-	}
-
-	double prod = 0.;
-	for( int k=0; k < model.rank; k++) prod += user_vec[k] * (item1_vec[k] - item2_vec[k]);
-	if(prod !=  prod){ 
-		cout << "Numerical Error!" <<endl;
-		return false;
-	}
-
-	double grad = 0.;
-	grad = - 1./(1. + exp(prod));
-
-	if(grad !=0.){
-		 for(int k=0; k<model.rank; k++) {
-			double user_dir  = stepsize * (grad * comp.comp * (item1_vec[k] - item2_vec[k]) + 2 * lambda /(double)n_comps_user * user_vec[k]);
-			double item1_dir = stepsize * (grad * comp.comp * user_vec[k] + 2 * lambda / (double) n_comps_item1 * item1_vec[k]);
-			double item2_dir = stepsize * (grad * -comp.comp * user_vec[k] + 2 * lambda  / (double)n_comps_item2 * item2_vec[k]);
-
-			user_vec[k]  -= user_dir;
-			item1_vec[k] -= item1_dir;
-			item2_vec[k] -= item2_dir;
-		}
-	}
-}
-
-void HybridRank::sgd_userwise_step(Model& model, const comparison& comp, double lambda, double stepsize){
-	int iid = comp.user_id;
-	int uid1= comp.item1_id;
-	int uid2= comp.item2_id;
-	double sc1 = comp.item1_rating;
-	double sc2 = comp.item2_rating;
-
-	double* user1_vec = &(model.U[ uid1 * model.rank]);
-	double* user2_vec = &(model.U[ uid2 * model.rank]);
-	double* item_vec  = &(model.V[ iid * model.rank]);
-
-	int n_comps_user1 = n_comps_by_user[uid1];
-	int n_comps_user2 = n_comps_by_user[uid2];
-	int n_comps_item  = n_comps_by_item[iid];
-
-	if(n_comps_user1 < 1 || n_comps_user2 < 1 || n_comps_item < 1) {
-		cout << "No training pair Error" << endl;
-		return ;
-	}
-
-	if(uid1 > model.n_users || uid2 > model.n_users) {
-		printf(" Items id exceeds the maximum number of items\n");
-		return ;
-	}
-
-	double prod = 0.;
-	for(int k=0; k<model.rank; k++)	prod += (user1_vec[k]-user2_vec[k])*item_vec[k]; 
-
-	if(prod !=  prod){ 
-		cout << "Numerical Error!" <<endl;
-		return false;
-	}
-	
-	doule grad = 0.;
-	grad = -1./(1. + exp(prod));  // - 1/ (1+e^(r_{u1i}-r_{u2i}));	
-
-	if(grad != 0.){
-		for(int k=0; k < model.rank; k++){
-			double item_dir = stepsize * (grad * comp.comp * (user1_vec[k] - user2_vec[k]) + 2 * lambda / (double)n_comps_item * item_vec[k]);
-			double user1_dir= stepsize * (grad * comp.comp * item_vec[k] + 2 * lambda / (double)n_comps_user1 * user1_vec[k]);
-			double user2_dir= stepsize * (grad * -comp.comp* item_vec[k] + 2 * lambda / (double)n_comps_user2 * user2_vec[k]);
-
-			item_vec -= item_dir;
-			user1_vec -= user1_dir;
-			user2_vec -= user2_dir;
-		}
-	}
-}
 
 /*
 

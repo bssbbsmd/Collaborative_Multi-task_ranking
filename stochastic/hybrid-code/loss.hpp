@@ -25,8 +25,8 @@ double compute_ndcg(const TestMatrix& test, const Model& model, int choice) {
     double ndcg_sum = 0.;
     std::vector<double> score;
     int n_valid_ids = 0;
-
     //compute the ndcg for personalized ranking
+    
     if(choice == 0){
         for(int uid=0; uid < model.n_users; ++uid) {
             double dcg = 0.;
@@ -50,13 +50,17 @@ double compute_ndcg(const TestMatrix& test, const Model& model, int choice) {
         }
         ndcg_sum = ndcg_sum/(double)n_valid_ids;
     }
+
     //computer the ndcg for the user targeting
     if(choice == 1){
+        std::cout<<"break point 0"<< std::endl;
+        
         for(int iid=0; iid < model.n_items; iid++){
             double dcg = 0.;
             score.clear();
 
             vector<pair<int, double>> item_pairs = test.userwise_test_pairs[iid];
+
             if(!item_pairs.empty()){
                 for(int i=0; i < item_pairs.size(); i++){
                     int uid = item_pairs[i].first;
@@ -68,8 +72,10 @@ double compute_ndcg(const TestMatrix& test, const Model& model, int choice) {
                     }
                 }
             }
+            std::cout<<"break point 1"<< std::endl;
             ndcg_sum += test.compute_item_ndcg(iid, score);
             n_valid_ids++;
+            std::cout<<"break point 2"<< std::endl;
         }
         ndcg_sum = ndcg_sum/(double)n_valid_ids;
     }

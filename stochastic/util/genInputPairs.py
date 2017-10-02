@@ -19,7 +19,7 @@ def pair_comp_item(x, y):
 	else:
 		return x[1] - y[1]
 
-def write_train_ratings(f, max_uid, max_iid, rating_list):
+def write_ratings(f, max_uid, max_iid, rating_list):
 	line = str(max_uid)+ " "+ str(max_iid)
 	print(line, file=f)
 	for rating in rating_list:
@@ -95,6 +95,17 @@ def num2comp(filename, output, n_train_ratio, n_test_least):
 	print("Dataset for {0} users, {1} items loaded.".format(n_users, n_items))
 	
 
+	########################################################################
+	### wrting training and test rating file, it is used for update regression loss
+
+	g_train_rating = open(output + '_train_rating_'+str(n_train_ratio)+'.rating', 'w')
+	write_ratings(g_train_rating, n_users, n_items, train_triples_list)
+	g_train_rating.close()
+
+	g_test_rating = open(output + '_test_rating_'+str(n_train_ratio)+'.rating', 'w')
+	write_ratings(g_test_rating, n_users, n_items, train_triples_list)
+	g_test_rating.close()
+
 	#######################################################################
 	## obtain the training pairs for each user
 
@@ -138,6 +149,9 @@ def num2comp(filename, output, n_train_ratio, n_test_least):
 	print("Test dataset sorted by user_id")
 
 	g_test_user_1 = open(output+'_test_user_'+str(n_train_ratio)+'.lsvm','w')
+
+	first_line = str(n_users)+ " "+ str(n_items)
+	print(first_line, file=g_test_user_1) 
 
 	prev_uid = test_triples_list[0][0]
 	curr_uid = test_triples_list[0][0]
@@ -205,6 +219,9 @@ def num2comp(filename, output, n_train_ratio, n_test_least):
 	print("Test dataset sorted by item_id")
 
 	g_test_item_1 = open(output+'_test_item_'+str(n_train_ratio)+'.lsvm','w')
+
+	first_line = str(n_users)+ " "+ str(n_items)
+	print(first_line, file=g_test_item_1) 
 
 	prev_iid = test_triples_list[0][1]
 	curr_iid = test_triples_list[0][1]

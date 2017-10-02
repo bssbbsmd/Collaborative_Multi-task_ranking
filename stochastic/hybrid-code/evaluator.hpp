@@ -16,18 +16,15 @@
 class Evaluator {
   public: 
     virtual void evaluate(const Model&) {} 
-    virtual void evaluateAUC(const Model&) {}
     virtual void load_files(const std::string&, const std::string&, std::vector<int>&) = 0;
     virtual int get_nusers() {}
     virtual int get_nitems() {} 	     
-	    
-    std::vector<int> k;
-    int k_max;
 };
 
 
 class EvaluatorRating : public Evaluator {
   TestMatrix test;
+  std::vector<int> k;
   
   public:
     void load_files(const std::string&, const std::string&, std::vector<int>&);
@@ -39,17 +36,25 @@ class EvaluatorRating : public Evaluator {
 void EvaluatorRating::load_files (const std::string& itemwise_test_file, const std::string& userwise_test_file, std::vector<int>& ik) {
   	test.read_lsvm_itemwise(itemwise_test_file);
   	test.read_lsvm_userwise(userwise_test_file);
-  	test.compute_user_dcgmax(10);
-  	test.compute_item_dcgmax(10);
+  	std::cout << "N_users:" << test.n_users << " N_items:"<<test.n_items<<" N_itemwise_test_ratings:"
+  			<<test.n_itemwise_test_pairs << " N_userwise_test_ratings:"<< test.n_userwise_test_pairs<<std::endl;
+
+  	test.compute_user_dcgmax(ik[0]);
+  	test.compute_item_dcgmax(ik[0]);
+
+  	std::cout << ">> Calculate DCG-max for each user and item, done!!!" << std::endl;
+
   	k = ik;
   	std::sort(k.begin(), k.end());
-  	k_max = k[k.size()-1];
 }
 
 void EvaluatorRating::evaluate(const Model& model) {
 	//double err  = compute_pairwiseError(test, model);
-  	double ndcg = compute_ndcg(test, model);
-  	printf("NDCG@10=%f", err, ndcg);
+	//std::cout << ">>>>>>>> start evaluating ... ";
+  	//double ndcg = compute_ndcg(test, model, 0);
+  	double ndcg1 = compute_ndcg(test, model, 1);
+  	//std::cout<<"PR NDCG@"<<k[0]<<"="<<ndcg;
+  	std::cout<<"\t UT M=NDCG@"<<k[0]<<"="<<ndcg1<<std::endl; 
 }
 
 #endif

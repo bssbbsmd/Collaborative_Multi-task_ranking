@@ -10,10 +10,10 @@
 #include "problem.hpp"            //contains the training pairs
 #include "model.hpp"              //define the latent matrix U and V
 #include "evaluator.hpp"          //define evaluation metrics
-#include "solver/sgd.hpp"
-#include "solver/pairsgd.hpp"
-#include "solver/pairregsgd.hpp"
-#include "solver/pairregssgd.hpp"
+//#include "solver/sgd.hpp"
+//#include "solver/pairsgd.hpp"
+//#include "solver/pairregsgd.hpp"
+//#include "solver/pairregssgd.hpp"
 #include "solver/hybridrank.hpp"
 
 using namespace std;
@@ -21,10 +21,10 @@ using namespace std;
 struct configuration {
   std::string algo = "pairregssgd";
   std::string type_str = "numeric", itemwise_train_comps_file, itemwise_test_file; //itemwise pairs for personalized ranking 
-  std::string userwise_train_comps_file, userwise_test_file;  //userwise pairs for user targeting
+  std::string userwise_train_comps_file, userwise_test_file, train_rating_file;  //userwise pairs for user targeting
   int rank = 50, n_threads = 1, max_iter = 30;
   int update_choice = 1;
-  double lambda = 1000, tol = 1e-5;
+  double lambda = 1, tol = 1e-5;
   double alpha, beta, gamma;
   double step_size=0.01;
   bool evaluate_every_iter = true;
@@ -51,6 +51,9 @@ int readConf(struct configuration& conf, std::string conFile) {
       }
       if (key == "itemwise_train_comps_file") {
         conf.itemwise_train_comps_file = val;
+      }
+      if (key == "train_rating_file") {
+        conf.train_rating_file = val;
       }
       if (key == "itemwise_test_file") {
         conf.itemwise_test_file = val;
@@ -100,7 +103,6 @@ int readConf(struct configuration& conf, std::string conFile) {
       }
     }
   }
-
   return 1;
 }
 
@@ -132,12 +134,19 @@ int main (int argc, char* argv[]) {
 
   prob.lambda = conf.lambda;
 
-  std::cout << "Loading itemwise training set file : " << conf.itemwise_train_comps_file << std::endl;
+  std::cout << std::endl;
+  std::cout << ">>>>>>>> Loading training rating file : " << conf.itemwise_train_comps_file << std::endl;
+  prob.read_data_rating(conf.train_rating_file);
+  std::cout << ">>>>>>>> Loading training rating file, done!!!! "<< std::endl<< std::endl;
+
+  std::cout << ">>>>>>>> Loading itemwise training set file : " << conf.itemwise_train_comps_file << std::endl;
   prob.read_data_itemwise(conf.itemwise_train_comps_file);
+  std::cout << ">>>>>>>> Loading itemwise training set file, done!!!! "<< std::endl<< std::endl;
 
-  std::cout << "Loading userwise training set file : " << conf.userwise_train_comps_file << std::endl;
+  std::cout << ">>>>>>>> Loading userwise training set file : " << conf.userwise_train_comps_file << std::endl;
   prob.read_data_userwise(conf.userwise_train_comps_file);
-
+  std::cout << ">>>>>>>> Loading userwise training set file, done!!!! "<< std::endl<< std::endl;
+  //prob.print_training_data_info();
   int n_users_train = prob.get_nusers();  // get the number of users in training
   int n_items_train = prob.get_nitems();  // get the number of items in the testing
 
@@ -152,10 +161,11 @@ int main (int argc, char* argv[]) {
     k_list.push_back(10);
   }
 
-  std::cout << "Reading two test pairwise file : " << std::endl;
+  std::cout << ">>>>>>>> Reading two test pairwise file : " << conf.itemwise_test_file << " and " << conf.userwise_test_file << std::endl;
 
   //load two pairwise test file, and compute the dcg_max for the testmatrix
   eval->load_files(conf.itemwise_test_file, conf.userwise_test_file, k_list);
+  std::cout << ">>>>>>>> Reading two test pairwise file, done!!!!" << std::endl << std::endl;
 
   int n_users_test = eval->get_nusers();
   int n_items_test = eval->get_nitems();
@@ -167,7 +177,7 @@ int main (int argc, char* argv[]) {
   // Solver definition
   omp_set_dynamic(0);
   omp_set_num_threads(conf.n_threads);
-
+/*
   if(conf.algo == "pairregssgd"){
   	for(int i = 0; i < 1; ++i){
   		cout << "**************n_threads="<<conf.n_threads<<"**************"<<endl;
@@ -197,15 +207,19 @@ int main (int argc, char* argv[]) {
   		mySolver2->solve(prob, model, eval);
   		delete mySolver2;
   	}
-  }else if(conf.algo == "hybridrank"){
+  }else 
+  */
+  if(conf.algo == "hybridrank"){
   	cout << "**************n_threads="<<conf.n_threads<<"**************"<<endl;
   	//printf("iteration, training time (sec), pairwise error, ndcg@10\n");
-  	Solver* mySolver = new HybridRank(conf.alpha, conf.beta, conf.gamma, INIT_RANDOM, conf.n_threads, conf.max_iter, conf.update_choice, conf.step_size);
+     // std::cout<<"Personalized ranking NDCG@"<<k[0]<<"="<<ndcg<<std::endl; 
+
+    //gamma is used as the regularization parameter, i.e., lambda
+  	Solver* mySolver = new HybridRank(conf.alpha, conf.beta, conf.lambda, INIT_RANDOM, conf.n_threads, conf.max_iter, conf.update_choice, conf.step_size);
   	mySolver->solve(prob, model, eval);		
   	delete mySolver;
   	cout<<endl;	
-  }
-  else {
+  }else {
     std::cerr << "ERROR : provide correct algorithm !\n";
     return -1;
   } 

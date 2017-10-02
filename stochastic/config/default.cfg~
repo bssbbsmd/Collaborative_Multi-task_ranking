@@ -1,19 +1,19 @@
 [prob]
 # regularization parameter
-lambda = 100
+lambda = 1
 
 # weight for squared loss term 
 # WE RECOMMEND TO USE ((gamma=100 if N=10)), ((gamma=1/10 if N=20)), ((gamma=0.1/0.01 if N=50)) (see paper)
-gamma = 1
+gamma = 0
 
 # model rank (for low-rank approximation)
-rank = 50
+rank = 20
 
 # algorithm : pairregssgd, pairregsgd, pairssgd, hybridrank
 algorithm = hybridrank
 
 # the maximum number of outer iterations
-max_outer_iter = 20
+max_outer_iter = 10
 
 # stopping criterion
 tol = 1e-5
@@ -26,21 +26,24 @@ evaluate = true
 type = numeric
 
 # file names for trainig and test sets
-train_file          = ../data/ml1m_train_comps_ratings_20.lsvm
-test_file           = ../data/ml1m_test_ratings_20.lsvm
+train_rating_file			   = util/data/ml100k_train_rating_0.1.rating
+itemwise_train_comps_file          = util/data/ml100k_train_user_rating_pairs_0.1.pair
+userwise_train_comps_file          = util/data/ml100k_train_item_rating_pairs_0.1.pair
+itemwise_test_file           = util/data/ml100k_test_user_0.1.lsvm
+userwise_test_file           = util/data/ml100k_test_item_0.1.lsvm
 
 [par]
 # number of openmp threads
-nthreads = 16
+nthreads = 1
 
 [sgd and pairregsgd]
 # stepsize is recommended to use 1e-2 when N=10, and 5e-2 when N=20 and N=50... Or 1e-2 for all
-step_size = 0.01
+step_size = 0.005
 
 [balance factor]
 # the hyperparameters to set for weighting different loss functions
-alpha = 0.5
-beta = 0
+alpha = 0
+beta = 1
 
 SGD = true
 SSGD = true

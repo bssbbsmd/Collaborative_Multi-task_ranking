@@ -53,8 +53,6 @@ double compute_ndcg(const TestMatrix& test, const Model& model, int choice) {
 
     //computer the ndcg for the user targeting
     if(choice == 1){
-        std::cout<<"break point 0"<< std::endl;
-        
         for(int iid=0; iid < model.n_items; iid++){
             double dcg = 0.;
             score.clear();
@@ -69,13 +67,13 @@ double compute_ndcg(const TestMatrix& test, const Model& model, int choice) {
                         for(int k=0; k< model.rank; ++k)
                             prod += model.U[uid * model.rank + k] * model.V[iid * model.rank + k]; //estimated socres
                         score.push_back(prod);
+                    }else {
+                      score.push_back(-1e10);
                     }
                 }
-            }
-            std::cout<<"break point 1"<< std::endl;
-            ndcg_sum += test.compute_item_ndcg(iid, score);
-            n_valid_ids++;
-            std::cout<<"break point 2"<< std::endl;
+                ndcg_sum += test.compute_item_ndcg(iid, score);
+                n_valid_ids++;
+            }            
         }
         ndcg_sum = ndcg_sum/(double)n_valid_ids;
     }

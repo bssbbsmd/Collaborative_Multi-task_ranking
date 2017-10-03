@@ -92,6 +92,7 @@ int readConf(struct configuration& conf, std::string conFile) {
       if (key == "nthreads") {
         conf.n_threads = std::stoi(val);
       }
+
       if (key == "alpha") {
         conf.alpha = std::stod(val);
       }
@@ -215,7 +216,7 @@ int main (int argc, char* argv[]) {
      // std::cout<<"Personalized ranking NDCG@"<<k[0]<<"="<<ndcg<<std::endl; 
 
     //gamma is used as the regularization parameter, i.e., lambda
-  	Solver* mySolver = new HybridRank(conf.alpha, conf.beta, conf.lambda, INIT_RANDOM, conf.n_threads, conf.max_iter, conf.update_choice, conf.step_size);
+  	Solver* mySolver = new HybridRank(conf.alpha, conf.beta, conf.lambda, INIT_RANDOM, conf.n_threads, conf.max_iter, conf.update_choice, conf.step_size, conf.gamma);
   	mySolver->solve(prob, model, eval);		
   	delete mySolver;
   	cout<<endl;	

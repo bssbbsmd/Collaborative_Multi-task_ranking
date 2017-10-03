@@ -24,6 +24,7 @@ class HybridRank : public Solver{
 	protected:
 		double alpha, beta; // the parameters to set for step_size		
 	    double lambda; // the weights for squared penalty 
+	    double gamma; // relative learning rate: lr_reg =  lr_pair * gamma;
 		int learn_choice;
 		double step_size;
 
@@ -46,8 +47,8 @@ class HybridRank : public Solver{
 
 	public:
 		HybridRank(): Solver(){}
-		HybridRank(double alp, double bet, double lam, init_option_t init, int n_th, int m_it=10, int update_choice=1, double stepsize=0.01):
-			 Solver(init, m_it, n_th), alpha(alp), beta(bet), lambda(lam), learn_choice(update_choice), step_size(stepsize) {}
+		HybridRank(double alp, double bet, double lam, init_option_t init, int n_th, int m_it=10, int update_choice=1, double stepsize=0.01, double gam=1.):
+			 Solver(init, m_it, n_th), alpha(alp), beta(bet), lambda(lam), learn_choice(update_choice), step_size(stepsize), gamma(gam) {}
 		void solve(Problem&, Model&, Evaluator* eval);
 };
 
@@ -101,18 +102,18 @@ void HybridRank::solve(Problem& prob, Model& model,  Evaluator* eval){
 				//sample a value between 0 and 1
 				double a = randa(gen);
 
-				if(a<alpha && a>=0){ //optimizing personalized ranking
+				if(0<=a && a< alpha){ //optimizing personalized ranking
 					int item_pair_idx = itemwise_randidx(gen);
 					sgd_itemwise_step(model, prob.itemwise_train[item_pair_idx], lambda, stepsize);
 				}
-				else if( alpha <= a && a <= alpha +beta ){
+				else if(alpha <= a && a <= alpha + beta ){
 					int user_pair_idx = userwise_randidx(gen);
 					sgd_userwise_step(model, prob.userwise_train[user_pair_idx], lambda, stepsize);
 				} else {
 					//int item_pair_idx = itemwise_randidx(gen);
 				    //sgd_itemwise_reg_step(model, prob.itemwise_train[item_pair_idx], lambda, stepsize);
 					int train_rating_idx = rating_randidx(gen);
-					sgd_reg_step(model, prob.rating_train[train_rating_idx], lambda, stepsize);					
+					sgd_reg_step(model, prob.rating_train[train_rating_idx], lambda, stepsize * gamma);					
 				}
 /*
 				if(alpha!=0 || beta!=0){
@@ -255,7 +256,7 @@ void HybridRank::sgd_itemwise_step(Model& model, const comparison& comp, double 
 
 	if(grad !=0.){
 		 for(int k=0; k<model.rank; k++) {
-			double user_dir  = stepsize * (grad * comp.comp * (item1_vec[k] - item2_vec[k]) + 2 * lambda /(double)n_comps_user * user_vec[k]);
+		//	double user_dir  = stepsize * (grad * comp.comp * (item1_vec[k] - item2_vec[k]) + 2 * lambda /(double)n_comps_user * user_vec[k]);
 			double item1_dir = stepsize * (grad * comp.comp * user_vec[k] + 2 * lambda / (double) n_comps_item1 * item1_vec[k]);
 			double item2_dir = stepsize * (grad * -comp.comp * user_vec[k] + 2 * lambda  / (double)n_comps_item2 * item2_vec[k]);
 
@@ -304,7 +305,7 @@ void HybridRank::sgd_userwise_step(Model& model, const comparison& comp, double 
 
 	if(grad != 0.){
 		for(int k=0; k < model.rank; k++){
-			double item_dir = stepsize * (grad * comp.comp * (user1_vec[k] - user2_vec[k]) + 2 * lambda / (double)n_comps_item * item_vec[k]);
+		//	double item_dir = stepsize * (grad * comp.comp * (user1_vec[k] - user2_vec[k]) + 2 * lambda / (double)n_comps_item * item_vec[k]);
 			double user1_dir= stepsize * (grad * comp.comp * item_vec[k] + 2 * lambda / (double)n_comps_user1 * user1_vec[k]);
 			double user2_dir= stepsize * (grad * -comp.comp* item_vec[k] + 2 * lambda / (double)n_comps_user2 * user2_vec[k]);
 

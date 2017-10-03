@@ -51,10 +51,10 @@ void EvaluatorRating::load_files (const std::string& itemwise_test_file, const s
 void EvaluatorRating::evaluate(const Model& model) {
 	//double err  = compute_pairwiseError(test, model);
 	//std::cout << ">>>>>>>> start evaluating ... ";
-  	//double ndcg = compute_ndcg(test, model, 0);
+  //	double ndcg  = compute_ndcg(test, model, 0);
   	double ndcg1 = compute_ndcg(test, model, 1);
-  	//std::cout<<"PR NDCG@"<<k[0]<<"="<<ndcg;
-  	std::cout<<"\t UT M=NDCG@"<<k[0]<<"="<<ndcg1<<std::endl; 
+  //	std::cout<<"PR NDCG@"<<k[0]<<"="<<ndcg;
+  	std::cout<<"\t UT NDCG@"<<k[0]<<"="<<ndcg1<<std::endl; 
 }
 
 #endif

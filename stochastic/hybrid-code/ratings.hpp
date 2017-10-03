@@ -233,10 +233,10 @@ double TestMatrix::compute_user_ndcg(int uid, const std::vector<double>& score) 
   return dcg / user_dcg_max[uid];
 } 
 
-double TestMatrix::compute_item_ndcg(int iid, const std::vector<double>& score) const {
-  std::vector<std::pair<double,int> > ranking; 
-
-  std::cout << score.size() <<std::endl;
+double TestMatrix::compute_item_ndcg(int iid, const std::vector<double>& score) const {  
+  std::vector<std::pair<double,int> > ranking;
+ 
+ // std::cout << "iid:"<< iid << " score_vector_size:" << score.size() << "  ground_truth_pairs:" <<  userwise_test_pairs[iid].size() <<std::endl;
   if(userwise_test_pairs[iid].size() != score.size()){
     std::cout<< "pairs does not match" << std::endl;
   }
@@ -250,6 +250,7 @@ double TestMatrix::compute_item_ndcg(int iid, const std::vector<double>& score) 
     min_score = std::min(min_score, ranking[j].first);
 
   double dcg = 0.;
+
   for(int k=1; k<=ndcg_k; ++k) {
     int topk_idx = -1;
     double max_score = min_score - 1.;

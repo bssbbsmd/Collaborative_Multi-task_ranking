@@ -34,13 +34,15 @@ class EvaluatorRating : public Evaluator {
 };
 
 void EvaluatorRating::load_files (const std::string& itemwise_test_file, const std::string& userwise_test_file, std::vector<int>& ik) {
-  	test.read_lsvm_itemwise(itemwise_test_file);
-  	test.read_lsvm_userwise(userwise_test_file);
-  	std::cout << "N_users:" << test.n_users << " N_items:"<<test.n_items<<" N_itemwise_test_ratings:"
-  			<<test.n_itemwise_test_pairs << " N_userwise_test_ratings:"<< test.n_userwise_test_pairs<<std::endl;
+  	test.read_lsvm_itemwise(itemwise_test_file);  // evaluate personalized ranking
+  	test.read_lsvm_userwise(userwise_test_file);  // evaluate user targeting
 
-  	test.compute_user_dcgmax(ik[0]);
-  	test.compute_item_dcgmax(ik[0]);
+  	std::cout << std::endl << "N_users:" << test.n_users << " N_items:"<<test.n_items<<" N_itemwise_test_ratings:"
+  			<<test.n_itemwise_test_pairs << " N_userwise_test_ratings:"<< test.n_userwise_test_pairs<<std::endl;
+    
+    if(test.n_itemwise_test_pairs != 0) test.compute_user_dcgmax(ik[0]);
+  	
+    if(test.n_userwise_test_pairs != 0) test.compute_item_dcgmax(ik[0]);
 
   	std::cout << ">> Calculate DCG-max for each user and item, done!!!" << std::endl;
 
@@ -52,8 +54,9 @@ void EvaluatorRating::evaluate(const Model& model) {
 	//double err  = compute_pairwiseError(test, model);
 	//std::cout << ">>>>>>>> start evaluating ... ";
   	double ndcg  = compute_ndcg(test, model, 0);
-  	double ndcg1 = compute_ndcg(test, model, 1);
-  	std::cout<< "PR NDCG@"<<k[0]<<"="<<ndcg<<"\t UT NDCG@"<<k[0]<<"="<<ndcg1; 
+  //	double ndcg1 = compute_ndcg(test, model, 1);
+  	std::cout<< "PR NDCG@"<<k[0]<<"="<<ndcg;
+   // "\t UT NDCG@"<<k[0]<<"="<<ndcg1; 
 }
 
 #endif

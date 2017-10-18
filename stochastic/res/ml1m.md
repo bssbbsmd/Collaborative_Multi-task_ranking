@@ -1,7 +1,7 @@
 
 ## Personalized Ranking Performance
  
- **rank=50 lr=0.05 lambda=100**
+ **rank=50 lr=0.05 lambda=100**  when alpha+beta=1, use lr=0.001
 
 |alpha\beta| 0     |  0.1  |	0.2  |	0.3  |  0.4  |	0.5  |	0.6  |  0.7  |	0.8  |  0.9  |	 1   |
   |:---:  | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |

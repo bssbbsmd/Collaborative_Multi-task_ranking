@@ -12,11 +12,11 @@ python rating2input_userpairs.py ../../data/raw_rating_data/ml1m.txt -o ../../da
 1. gen svm test file from test.lsvm file
 
 ```
-python svm2svm.py -i ../../data/svm_data_userpairs/ml100k_test_10.lsvm -o ../../data/svm_data_userpairs/compare_data/ml100k_test_10
+python svm2svm.py -i ../../data/svm_data_userpairs/ml100k_test_10.lsvm -o ../../data/compare_ut/ml100k_test_10
 ```
 
 2. gen svm training file from train.rating file
 
 ```
-python rating2svm.py -i ../../data/svm_data_userpairs/ml100k_train_50.rating -o ../../data/svm_data_userpairs/compare_data/ml100k_train_50
+python rating2svm.py -i ../../data/svm_data_userpairs/ml100k_train_50.rating -o ../../data/compare_ut/ml100k_train_50
 ```

@@ -1,11 +1,11 @@
-#### Generate Userpairs files
+## Generate Userpairs files
 
 ```
 python rating2input_userpairs.py raw_rating_data/ml1m.txt -o svm_data_userpairs/ml1m -n 10 -t 10
 ```
 
 
-#### Generate two lsvm file (for cofirank type algorithms) 
+## Generate two lsvm file (for cofirank type algorithms) 
 
 **The following programs are run on the output of the previous command**
 

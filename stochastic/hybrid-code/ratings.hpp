@@ -58,7 +58,17 @@ void TestMatrix::read_lsvm_itemwise(const std::string& filename) {
   f.open(filename);
 
   if(f.is_open()){
-    f >> n_users >> n_items;
+    int t_n_user, t_n_item;
+    f >> t_n_user >> t_n_item;
+
+    if(t_n_user==0||t_n_item==0){
+      std::cout<< "test designed for user targeting, no need of itempairs" << std::endl; 
+      return ;
+    }
+
+    n_users = t_n_user;
+    n_items = t_n_item;
+    
     itemwise_test_pairs.resize(n_users);
     getline(f, user_str);
     while(!f.eof()) {
@@ -112,7 +122,17 @@ void TestMatrix::read_lsvm_userwise(const std::string& filename) {
   f.open(filename);
 
   if(f.is_open()){
-    f >> n_users >> n_items;
+    int t_n_user, t_n_item;
+    f >> t_n_user >> t_n_item;
+
+    if(t_n_user==0||t_n_item==0){
+      std::cout<< "test designed for personalized ranking, no need of userpairs" << std::endl; 
+      return ;
+    }
+
+    n_users = t_n_user;
+    n_items = t_n_item;
+
     userwise_test_pairs.resize(n_items);
     getline(f, item_str);
     while(!f.eof()) {

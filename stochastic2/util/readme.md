@@ -1,14 +1,18 @@
-### Generate Userpairs files
+### GENERATE ITEMPAIR FILES (PERSONALIZED RANKING)
+
+```
+python rating2input.py ../../data/raw_rating_data/ml1m.txt -o ../../data/svm_data_userpairs/ml1m -n 10 -t 10
+```
+
+### GENERATE USERPAIR FILES (USER TARGETING)
 
 ```
 python rating2input_userpairs.py ../../data/raw_rating_data/ml1m.txt -o ../../data/svm_data_userpairs/ml1m -n 10 -t 10
 ```
 
+### GENERATE FILES FOR COMPARIOSN
 
-
-## GENERATE FILES FOR COMPARIOSN
-
-### Generate two (training + test) lsvm file (for cofirank type algorithms) 
+Generate two (training + test) lsvm file (for cofirank type algorithms) 
 
 **The following programs are run on the output of the previous command**
 

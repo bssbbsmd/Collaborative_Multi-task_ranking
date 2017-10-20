@@ -1,7 +1,7 @@
 ### GENERATE ITEMPAIR FILES (PERSONALIZED RANKING)
 
 ```
-python rating2input.py ../../data/raw_rating_data/ml1m.txt -o ../../data/svm_data_itempairs/ml1m -n 10 -t 10
+python rating2input_itempairs.py ../../data/raw_rating_data/ml1m.txt -o ../../data/svm_data_itempairs/ml1m -n 10 -t 10
 ```
 
 ### GENERATE USERPAIR FILES (USER TARGETING)

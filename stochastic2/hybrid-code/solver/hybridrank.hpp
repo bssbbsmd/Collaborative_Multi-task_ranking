@@ -78,7 +78,7 @@ void HybridRank::solve(Problem& prob, Model& model,  Evaluator* eval){
 	time = omp_get_wtime() - time; 
 	cout << "Parameter Initialization time cost .... " << time << endl;	
 
-	int n_total_updates = min(prob.n_itemwise_train_comps, prob.n_userwise_train_comps);
+	int n_total_updates = min(prob.n_itemwise_train_comps, prob.n_itemwise_train_comps);
 
 	int n_max_updates = n_total_updates/ n_threads;
 

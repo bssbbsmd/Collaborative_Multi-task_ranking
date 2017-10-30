@@ -27,6 +27,7 @@ def svm2svm(input, output, dele):
     split_line = line.strip().split()
     write_lsvm(g1, split_line[1:])
   f.close()
+  g1.close()
 
   print("Dataset for {0} users, {1} items loaded.".format(n_users, n_items)) 
 

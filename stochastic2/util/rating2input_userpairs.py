@@ -8,7 +8,7 @@ import itertools
 
 def pair_comp_user(x, y):
 	if x[0] == y[0]:
-		return x[1] - y[1]
+		return int(x[1]) - int(y[1])
 	else:
 		return x[0] - y[0]
 

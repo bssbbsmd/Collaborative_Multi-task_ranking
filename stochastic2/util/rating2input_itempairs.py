@@ -51,12 +51,16 @@ def write_lsvm(f, n_users, n_items, data):
 	for i in xrange(1, len(data)+1):
 		write_lsvm_one(f, i, data[i-1]) 	   
 
-def num2comp(filename, output, n_train, n_test):
+def num2comp(filename, output, n_train, n_test, d1):
   n_users = 0
   n_items = 0
   n_ratings = 0
   triples_list = []
   f = open(filename, 'r')
+
+  if d1==1:
+    first_line = f.readline()
+
   for line in f:
     (user_id, item_id, rating) = line.strip().split()
     triples_list.append((int(user_id), int(item_id), float(rating)))
@@ -150,11 +154,11 @@ if __name__ == "__main__":
                       default=50, help="Number of training items per user (Default 50)") 
   parser.add_argument('-t', '--test_item', action='store', dest='n_test', type=int,
                       default=10, help="Minimum number of test items per user (Default 10)")
-  parser.add_argument('-s', '--subsample', action='store_true',
-                      help="At most (N_TRAIN) comparions from (N_TRAIN) ratings are sampled for each user")
+  parser.add_argument('-d1', '--delete_first_line', action='store', dest='d1', type=int,
+                      default=0, help="if delete the first line: 1 delete; 0 (default) keep it.")
   args = parser.parse_args()
 
   if args.output == "":
     args.output = os.path.splitext(os.path.basename(args.input_file))[0]
 
-num2comp(args.input_file, args.output, args.n_train, args.n_test)
+num2comp(args.input_file, args.output, args.n_train, args.n_test, args.d1)

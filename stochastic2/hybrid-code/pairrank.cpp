@@ -212,12 +212,16 @@ int main (int argc, char* argv[]) {
   */
   if(conf.algo == "hybridrank"){
 
-    double alp[11] = {0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
-    double bet[11] = {0};
-   // double alp[1] = {0.5};
-   // double bet[1] = {0.5};
+    double alp[11] = {0.9, 1.0};
+   
+   // double alp[1] = {0};
+    double bet[1] = {0};
 
-    for(int i=0; i< 11 ; i++) 
+   
+   // double alp[1] = {1.};
+   // double bet[1] = {0.};
+
+    for(int i=0; i< 2; i++) 
       for(int j=0; j< 1; j++){
         if(alp[i]+bet[j]<=1){
           cout << "******n_threads="<<conf.n_threads<<"; alpha=" << alp[i] <<"; beta="<< bet[j] <<"*****"<<endl;

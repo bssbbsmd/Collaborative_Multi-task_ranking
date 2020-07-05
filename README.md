@@ -1,2 +1,1 @@
-# Personalized_collaborative_ranking
-Update U efficiently
+Please check implementation details in the sub-folder stochastic2

@@ -2,7 +2,11 @@
 
 ```
 python rating2input_itempairs.py ../../data/raw_rating_data/ml1m.txt -o ../../data/svm_data_itempairs/ml1m -n 10 -t 10
-```
+
+'-o': Prefix for the output files
+'-n': Number of training items per user (Default 50) 
+'-t': Minimum number of test items per user (Default 10)
+'-d1': if delete the first line: 1 delete; 0 (default) keep it
 
 ### GENERATE USERPAIR FILES (USER TARGETING)
 

@@ -1,13 +1,11 @@
-### Improved and Scalable Bradley-Terry (BT) Model for Collaborative Ranking
-We combine a regression model to the BT model in order to resolve the "identifiability" issue and "numerical challenge".
-We implemented two parallel solvers: SGD and SSGD (recommended) based on the Hogwild! parallel framework.
-
-### Prerequisite for installation 
+## Prerequisite for installation 
 We develop the algorithms on a UNIX-based system with a C++11 supporting compiler and OpenMP API, hence users should install c++11 and OpenMP first!!!
 
 compile using the Makefile 
 
+```
 $ make
+```
 
 ### Preprocessing of Input Data
 We provide a python script (util/num2coms.py) that transfers a (user, item, rating) dataset to a training set and test set: 

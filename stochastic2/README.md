@@ -1,5 +1,5 @@
 ## Prerequisite for installation 
-We develop the algorithms on a UNIX-based system with a C++11 supporting compiler and OpenMP API, hence users should install c++11 and OpenMP first!!!
+We develop the algorithms on a UNIX-based system with a C++11 supporting compiler and OpenMP API, hence users should install c++11 and [OpenMP](https://bisqwit.iki.fi/story/howto/openmp/) first!!!
 
 compile using the Makefile 
 

@@ -9,7 +9,7 @@ $ make
 
 ## Preprocessing of Input Data
 
-check config/default.cfg for the introduction of input parameters. In particular, five input files are needed to be generated as the input data
+check config/default.cfg for the introduction of input parameters. In particular, five input files need to be generated as the input data. Check utils about how to generate the following input files from source movielens dataset. 
 
 ```
 train_rating_file = /datadisk/disk1/Jun/data/svm_data_userpairs/ml100k_new_train_20.rating

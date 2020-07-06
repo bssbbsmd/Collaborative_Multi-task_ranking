@@ -37,7 +37,7 @@ userwise_test_file  = /datadisk/disk1/Jun/data/svm_data_userpairs/test.lsvm
 this is the input test file for user ranking; 
 
 ## Experiments 
-Users can configures the settings in the config/default.cfg file. Some recommended parameter settings has been shown in that file.
+Users can configures the settings in the [config/default.cfg](https://github.com/bssbbsmd/Collaborative_Multi-task_ranking/blob/master/stochastic2/config/default.cfg) file. Some recommended parameter settings has been shown in that file.
 
 Run the execute file (highly recommend to generate the execute file from source code, since in different c++ or computer enviroment, the provided execute may not run successfully): 
 

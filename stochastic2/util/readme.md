@@ -1,7 +1,7 @@
-### GENERATE ITEMPAIR FILES (PERSONALIZED RANKING)
+### GENERATE ITEMPAIR FILES for PERSONALIZED RANKING
 
 ```
-python rating2input_itempairs.py ../../data/raw_rating_data/ml100k.txt -o ../../data/svm_data_itempairs/ml100k -n 10 -t 10
+python rating2input_itempairs.py ../../data/raw_rating_data/ml100k.txt -o ../../data/svm_data_itempairs/ml100k -n 50 -t 10
 ```
 '-o': Prefix for the output files;
 
@@ -11,8 +11,13 @@ python rating2input_itempairs.py ../../data/raw_rating_data/ml100k.txt -o ../../
 
 '-d1': if delete the first line: 1 delete; 0 (default) keep it; 
 
+The output of the above commend contains 4 files: 
++ ml100k_train_50.pair
++ ml100k_test_50.lsvm
++ ml100k_train_50.rating
++ ml100k_train_50_add.pair
 
-### GENERATE USERPAIR FILES (USER TARGETING)
+### GENERATE USERPAIR FILES for USER TARGETING
 
 ```
 python rating2input_userpairs.py ../../data/raw_rating_data/ml1m.txt -o ../../data/svm_data_userpairs/ml1m -n 10 -t 10

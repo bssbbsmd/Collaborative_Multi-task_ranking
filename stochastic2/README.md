@@ -7,7 +7,7 @@ compile using the Makefile
 $ make
 ```
 
-### Preprocessing of Input Data
+## Preprocessing of Input Data
 
 check config/default.cfg for the introduction of input parameters. In particular, five input files are needed to be generated as the input data
 
@@ -36,10 +36,10 @@ userwise_test_file  = /datadisk/disk1/Jun/data/svm_data_userpairs/test.lsvm
 ```
 this is the input test file for user ranking; 
 
-#### Experiments 
+## Experiments 
 Users can configures the settings in the config/default.cfg file. Some recommended parameter settings has been shown in that file.
 
-Run the code
+Run the execute file (highly recommend to generate the execute file from source code, since in different c++ or computer enviroment, the provided execute may not run successfully): 
 
     $ ./pairrank
 

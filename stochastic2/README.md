@@ -1,7 +1,7 @@
 ## Prerequisite for installation 
 We develop the algorithms on a UNIX-based system with a C++11 supporting compiler and OpenMP API, hence users should install c++11 and [OpenMP](https://bisqwit.iki.fi/story/howto/openmp/) first!!!
 
-compile using the Makefile 
+compile using the provided [makefile](https://github.com/bssbbsmd/Collaborative_Multi-task_ranking/blob/master/stochastic2/Makefile) 
 
 ```
 $ make
